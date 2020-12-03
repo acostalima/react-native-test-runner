@@ -9,8 +9,6 @@ const setup = () => {
             console.log(zora.pass ? 'pass' : 'fail');
         } catch (error) {
             console.log('fail');
-
-            throw error;
         } finally {
             delete window.addEventListener;
         }

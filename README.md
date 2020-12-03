@@ -6,8 +6,8 @@
 [npm-image]:https://img.shields.io/npm/v/react-native-test-runner.svg
 [github-ci-url]:https://github.com/acostalima/react-native-test-runner/actions
 [github-ci-image]:https://github.com/acostalima/react-native-test-runner/workflows/Node%20CI/badge.svg
-[codecov-url]:https://codecov.io/gh/acostalima/react-native-test-runner/badge.svg?branch=master
-[codecov-image]:https://codecov.io/gh/acostalima/react-native-test-runner?branch=master
+[codecov-url]:https://codecov.io/gh/acostalima/react-native-test-runner?branch=master
+[codecov-image]:https://codecov.io/gh/acostalima/react-native-test-runner/badge.svg?branch=master
 
 > Run tests in React Native's environment.
 
@@ -45,6 +45,9 @@ Examples
 
     # Run tests on iPhone 11 simulator with whatever iOS version is available
     $ rn-test --platform ios --simulator 'iPhone 11' 'test/**/*.test.js'
+
+    # Run tests on iOS simulator by UUID
+    $ rn-test --platform ios --simulator 'DAC8A157-A03E-4E35-92E6-90752F95BB7A' 'test/**/*.test.js'
 
     # Run tests on Android emulator
     $ rn-test --platform android --emulator 'Pixel_API_28_AOSP' 'test/**/*.test.js'

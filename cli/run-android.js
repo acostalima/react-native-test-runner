@@ -78,6 +78,24 @@ const installApp = async ({ emulatorId, apkFilePath }) => {
     }
 };
 
+const uninstallApp = async ({ packageName }) => {
+    const process = execa('adb', [
+        'uninstall',
+        packageName,
+    ]);
+
+    const loader = ora();
+
+    try {
+        loader.start(`Uninstalling ${packageName}`);
+        await process;
+        loader.succeed();
+    } catch (error) {
+        loader.fail();
+        throw error;
+    }
+};
+
 const buildApk = async ({ projectPath, metroPort }) => {
     const gradle = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
     const buildProcess = execa(
@@ -131,10 +149,22 @@ const findBootedEmulator = () => {
     return null;
 };
 
-const bootHeadlessEmulator = async ({ emulatorName }) => {
+const bootHeadlessEmulator = async ({ emulator }) => {
+    const emulatorId = findBootedEmulator();
+
+    if (emulatorId) {
+        return { emulatorId, shutdown: () => Promise.resolve() };
+    }
+
+    const emulators = getEmulators();
+
+    if (!emulators.includes(emulator)) {
+        throw new Error(`Android emulator ${emulator} not found`);
+    }
+
     const loader = ora();
 
-    loader.start(`Booting headless ${emulatorName} emulator`);
+    loader.start(`Booting headless ${emulator} emulator`);
 
     const subprocess = execa(
         EMULATOR_PATH,
@@ -145,7 +175,7 @@ const bootHeadlessEmulator = async ({ emulatorName }) => {
             '-no-boot-anim',
             '-gpu',
             'swiftshader_indirect',
-            `@${emulatorName}`,
+            `@${emulator}`,
         ],
         {
             detached: true,
@@ -161,12 +191,12 @@ const bootHeadlessEmulator = async ({ emulatorName }) => {
 
             if (!emulatorId) {
                 return Promise.reject(
-                    new Error(`Android emulator ${emulatorName} did not boot`),
+                    new Error(`Android emulator ${emulator} did not boot`),
                 );
             }
 
             loader.succeed(
-                `Booting headless ${emulatorName} emulator (${emulatorId})`,
+                `Booting headless ${emulator} emulator (${emulatorId})`,
             );
 
             return ({
@@ -180,18 +210,19 @@ const bootHeadlessEmulator = async ({ emulatorName }) => {
                     loader.fail();
                 }
             },
-            retries: 5,
+            retries: 3,
             factor: 2,
-            minTimeout: 5000,
+            minTimeout: 3000,
+            maxTimeout: 15000,
         },
     );
 
     const createKillSubprocess = (emulatorId) => async () => {
         loader.start(
-            `Shutting down headless ${emulatorName} emulator (${emulatorId})`,
+            `Shutting down headless ${emulator} emulator (${emulatorId})`,
         );
 
-        subprocess.kill('SIGTERM', { forceKillAfterTimeout: 2000 });
+        subprocess.kill('SIGTERM', { forceKillAfterTimeout: 5000 });
 
         try {
             await pRetry(
@@ -199,12 +230,17 @@ const bootHeadlessEmulator = async ({ emulatorName }) => {
                     if (await processExists(subprocess.pid)) {
                         return Promise.reject(
                             new Error(
-                                `Android emulator ${emulatorName} (${emulatorId}) did not shutdown`,
+                                `Android emulator ${emulator} (${emulatorId}) did not shutdown`,
                             ),
                         );
                     }
                 },
-                { retries: 5, factor: 2, minTimeout: 5000 },
+                {
+                    retries: 3,
+                    factor: 2,
+                    minTimeout: 3000,
+                    maxTimeout: 15000,
+                },
             );
             loader.succeed();
         } catch (error) {
@@ -272,20 +308,14 @@ const getProjectSettings = ({ projectPath }) => {
     };
 };
 
-module.exports = async ({ emulatorName, projectPath, metroPort }) => {
-    const emulators = getEmulators();
-
-    if (!emulators.includes(emulatorName)) {
-        throw new Error(`Android emulator ${emulatorName} not found`);
-    }
-
+module.exports = async ({ emulator, projectPath, metroPort }) => {
     const { apkFilePath, mainActivity, packageName } = getProjectSettings({
         projectPath,
     });
     const {
         emulatorId,
         shutdown: shutdownEmulator,
-    } = await bootHeadlessEmulator({ emulatorName });
+    } = await bootHeadlessEmulator({ emulator });
 
     await buildApk({ projectPath, metroPort });
     await installApp({ emulatorId, apkFilePath });
@@ -293,6 +323,7 @@ module.exports = async ({ emulatorName, projectPath, metroPort }) => {
 
     return async () => {
         await terminateApp({ packageName });
+        await uninstallApp({ packageName });
         await shutdownEmulator();
     };
 };
