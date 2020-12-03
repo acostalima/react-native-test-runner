@@ -14,5 +14,15 @@ module.exports = compose(
             ...config.setupFilesAfterEnv,
             require.resolve('./jest.setup.js'),
         ],
+        collectCoverageFrom: [
+            '**/*.js',
+            '!node_modules/**',
+            '!app/**',
+            '!fixtures/**',
+            '!*.config.js',
+            '!*.setup.js',
+            '!coverage/**',
+        ],
+        coverageThreshold: undefined,
     }),
 );

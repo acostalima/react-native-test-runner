@@ -23,7 +23,7 @@ const {
     findTestFiles,
     getCommonParentDirectories,
 } = require('./utils');
-const writeZoraConfigFile = require('./test-runners/zora/create-config');
+const writeZoraConfigFile = require('./test-runners/zora/config');
 
 const INTERNAL_CALLSITES_REGEX = new RegExp(
     [
@@ -135,7 +135,7 @@ const getConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081 } = {}) => 
             ...testDirectories,
         ],
         reporter,
-        resetCache: isCI,
+        // resetCache: isCI,
     };
 };
 

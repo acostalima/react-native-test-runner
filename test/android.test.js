@@ -3,49 +3,9 @@
 const execa = require('execa');
 const { parse: parseTap } = require('tap-parser');
 
-test('tests pass on iOS', async () => {
-    const process = await execa('./cli/index.js', [
-        '--platform',
-        'ios',
-        '--simulator',
-        'iPhone 11',
-        'fixtures/pass.test.js',
-    ]);
+const ANDROID_EMULATOR = process.env.ANDROID_EMULATOR || 'Pixel_API_28_AOSP';
 
-    expect(process.exitCode).toBe(0);
-
-    const tapCompleteEvent = parseTap(process.stdout).pop();
-    const testResults = tapCompleteEvent[1];
-
-    expect(testResults.ok).toBe(true);
-    expect(testResults.pass).toBe(17);
-});
-
-test('tests fail on iOS', async () => {
-    expect.assertions(3);
-
-    const process = execa('./cli/index.js', [
-        '--platform',
-        'ios',
-        '--simulator',
-        'iPhone 11',
-        'fixtures/fail.test.js',
-    ]);
-
-    try {
-        await process;
-    } catch (error) {
-        expect(error.exitCode).toBe(1);
-
-        const tapCompleteEvent = parseTap(error.stdout).pop();
-        const testResults = tapCompleteEvent[1];
-
-        expect(testResults.ok).toBe(false);
-        expect(testResults.fail).toBe(3);
-    }
-});
-
-test('tests pass on Android', async () => {
+test('tests pass', async () => {
     const process = await execa('./cli/index.js', [
         '--platform',
         'android',
@@ -63,14 +23,14 @@ test('tests pass on Android', async () => {
     expect(testResults.pass).toBe(17);
 });
 
-test('tests fail on Android', async () => {
+test('tests fail', async () => {
     expect.assertions(3);
 
     const process = execa('./cli/index.js', [
         '--platform',
         'android',
         '--emulator',
-        'Pixel_API_28_AOSP',
+        ANDROID_EMULATOR,
         'fixtures/fail.test.js',
     ]);
 
@@ -90,9 +50,9 @@ test('tests fail on Android', async () => {
 test('glob', async () => {
     const process = await execa('./cli/index.js', [
         '--platform',
-        'ios',
-        '--simulator',
-        'iPhone 11',
+        'android',
+        '--emulator',
+        ANDROID_EMULATOR,
         'fixtures/glob/**/?(*.)+(spec|test).js',
     ]);
 
@@ -120,9 +80,9 @@ test('indent nested tests', async () => {
         './cli/index.js',
         [
             '--platform',
-            'ios',
-            '--simulator',
-            'iPhone 11',
+            'android',
+            '--emulator',
+            ANDROID_EMULATOR,
             'fixtures/nested.test.js',
         ],
         {
@@ -169,9 +129,9 @@ test('run only tests if RUN_ONLY is set', async () => {
         './cli/index.js',
         [
             '--platform',
-            'ios',
-            '--simulator',
-            'iPhone 11',
+            'android',
+            '--emulator',
+            ANDROID_EMULATOR,
             'fixtures/only.test.js',
         ],
         {
@@ -208,9 +168,9 @@ test('bail out if only test runs and RUN_ONLY is not set', async () => {
         './cli/index.js',
         [
             '--platform',
-            'ios',
-            '--simulator',
-            'iPhone 11',
+            'android',
+            '--emulator',
+            ANDROID_EMULATOR,
             'fixtures/only.test.js',
         ],
         {
@@ -232,7 +192,7 @@ test('bail out if only test runs and RUN_ONLY is not set', async () => {
                 actual: \\"fail called\\"
                 expected: \\"fail not called\\"
                 operator: \\"fail\\"
-                at: \\"getAssertionLocation@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false:99440:24\\"
+                at: \\"getAssertionLocation@http://10.0.2.2:8081/index.bundle?platform=android&dev=true&minify=false:99745:24\\"
               ...
             # should run 2
             Bail out! Unhandled error."

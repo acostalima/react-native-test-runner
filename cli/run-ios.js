@@ -7,6 +7,7 @@ const path = require('path');
 const os = require('os');
 const execa = require('execa');
 const ora = require('ora');
+const isUUID = require('is-uuid');
 
 const getSimulators = () => {
     const { stderr: output } = execa.sync('xcrun', [
@@ -16,7 +17,7 @@ const getSimulators = () => {
     ]);
     const lines = output.split(os.EOL);
 
-    for (let line; !line?.match(/[=]= Simulators ==/);) {
+    for (let line = lines.shift(); line.match(/^== Simulators ==$/);) {
         line = lines.shift();
     }
 
@@ -165,7 +166,7 @@ const buildApp = async ({ projectPath, simulator, metroPort }) => {
         cwd: projectPath,
         env: {
             ...process.env,
-            RCT_NO_LAUNCH_PACKAGER: 'true',
+            RCT_NO_LAUNCH_PACKAGER: true,
             // Defining the port at build time does not seem to work right now...
             // See: https://github.com/facebook/react-native/issues/9145#issuecomment-552599789
             RCT_METRO_PORT: `${metroPort}`,
@@ -235,25 +236,25 @@ const installApp = async ({ simulator, binaryFilePath, bundleId }) => {
     }
 };
 
-// const uninstallApp = async ({ simulator, bundleId }) => {
-//     const process = execa('xcrun', [
-//         'simctl',
-//         'uninstall',
-//         `${simulator.udid}`,
-//         bundleId,
-//     ]);
+const uninstallApp = async ({ simulator, bundleId }) => {
+    const process = execa('xcrun', [
+        'simctl',
+        'uninstall',
+        `${simulator.udid}`,
+        bundleId,
+    ]);
 
-//     const loader = ora();
+    const loader = ora();
 
-//     try {
-//         loader.start(`Uninstalling ${bundleId}`);
-//         await process;
-//         loader.succeed();
-//     } catch (error) {
-//         loader.fail();
-//         throw error;
-//     }
-// };
+    try {
+        loader.start(`Uninstalling ${bundleId}`);
+        await process;
+        loader.succeed();
+    } catch (error) {
+        loader.fail();
+        throw error;
+    }
+};
 
 const launchApp = async ({ simulator, bundleId }) => {
     const process = execa('xcrun', [
@@ -296,30 +297,29 @@ const terminateApp = async ({ simulator, bundleId }) => {
 };
 
 module.exports = async ({
-    simulatorId,
-    simulatorName,
+    simulator: inputSimulator,
     projectPath,
     metroPort,
 }) => {
-    let simulatorNameToFind = simulatorName;
-
-    if (simulatorId) {
-        const simulator = findSimulatorById(simulatorId);
+    if (isUUID.v4(inputSimulator)) {
+        const simulator = findSimulatorById(inputSimulator);
 
         if (!simulator) {
-            throw new Error(`iOS simulator ${simulatorId} not found`);
+            throw new Error(`iOS simulator ${simulator} not found`);
         }
 
-        simulatorNameToFind = `${simulator.name} (${simulator.version})`;
+        inputSimulator = `${simulator.name} (${simulator.version})`;
     }
 
-    const simulator = findSimulatorByName(simulatorNameToFind);
+    const simulator = findSimulatorByName(inputSimulator);
 
     if (!simulator) {
-        throw new Error(`iOS simulator ${simulatorNameToFind} not found`);
+        throw new Error(`iOS simulator ${inputSimulator} not found`);
     }
 
-    if (!simulator.booted) {
+    const simulatorAlreadyBooted = simulator.booted;
+
+    if (!simulatorAlreadyBooted) {
         await bootHeadlessSimulator(simulator);
     }
 
@@ -332,6 +332,7 @@ module.exports = async ({
 
     return async () => {
         await terminateApp({ simulator, bundleId });
-        await shutdownSimulator(simulator);
+        await uninstallApp({ simulator, bundleId });
+        !simulatorAlreadyBooted && await shutdownSimulator(simulator);
     };
 };

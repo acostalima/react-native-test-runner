@@ -20,7 +20,7 @@
     "android"
   ],
   "engines": {
-    "node": ">=10"
+    "node": ">=14"
   },
   "bin": {
     "rn-test": "./cli/index.js"
@@ -41,7 +41,7 @@
     "pods": "pod-install",
     "xcode": "xed -b ios",
     "studio": "studio android",
-    "postinstall": "npm run pods && patch-package",
+    "postinstall": "patch -p1 -i patches/zora+4.0.1.patch",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin HEAD && conventional-github-releaser -p angular",
     "test": "jest"
@@ -50,6 +50,7 @@
     "execa": "^4.1.0",
     "globby": "^11.0.1",
     "is-ci": "^2.0.0",
+    "is-uuid": "^1.0.2",
     "meow": "^8.0.0",
     "ora": "^5.1.0",
     "p-retry": "^4.2.0",

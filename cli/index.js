@@ -28,6 +28,9 @@ Examples
     # Run tests on iPhone 11 simulator with whatever iOS version is available
     $ rn-test --platform ios --simulator 'iPhone 11' 'test/**/*.test.js'
 
+    # Run tests on iOS simulator by UUID
+    $ rn-test --platform ios --simulator 'DAC8A157-A03E-4E35-92E6-90752F95BB7A' 'test/**/*.test.js'
+
     # Run tests on Android emulator
     $ rn-test --platform android --emulator 'Pixel_API_28_AOSP' 'test/**/*.test.js'
 `,
@@ -66,12 +69,12 @@ const testFileGlobs = cli.input;
 const PLATFORMS = ['android', 'ios'];
 const runTestsByPlatform = {
     ios: () => runIOS({
-        simulatorName: simulator,
+        simulator,
         projectPath: path.join(__dirname, '..', 'ios'),
         metroPort,
     }),
     android: () => runAndroid({
-        emulatorName: emulator,
+        emulator,
         projectPath: path.join(__dirname, '..', 'android'),
         metroPort,
     }),
