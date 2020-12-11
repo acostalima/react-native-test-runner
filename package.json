@@ -20,7 +20,7 @@
     "android"
   ],
   "engines": {
-    "node": ">=14"
+    "node": ">=12"
   },
   "bin": {
     "rn-test": "./cli/index.js"
@@ -31,7 +31,16 @@
     "android",
     "ios",
     "babel.config.js",
-    ".watchmanconfig"
+    ".watchmanconfig",
+    "patches",
+    "!build",
+    "!ios/Pods",
+    "!xcuserdata",
+    "!*.xcuserstate",
+    "!.idea",
+    "!.gradle",
+    "!*.iml",
+    "!local.properties"
   ],
   "scripts": {
     "ios:debug": "react-native run-ios --configuration Debug",
