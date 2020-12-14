@@ -135,7 +135,7 @@ const getConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081 } = {}) => 
             ...testDirectories,
         ],
         reporter,
-        // resetCache: isCI,
+        resetCache: isCI,
     };
 };
 
