@@ -31,6 +31,7 @@
     "android",
     "ios",
     "babel.config.js",
+    "postinstall.js",
     ".watchmanconfig",
     "patches",
     "!build",
@@ -50,7 +51,7 @@
     "pods": "pod-install",
     "xcode": "xed -b ios",
     "studio": "studio android",
-    "postinstall": "patch -d $(pwd) -p1 -i ./patches/zora+4.0.1.patch",
+    "postinstall": "./postinstall.js",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin HEAD && conventional-github-releaser -p angular",
     "test": "jest"
@@ -94,6 +95,7 @@
     "metro-react-native-babel-preset": "^0.59.0",
     "pod-install": "^0.1.12",
     "prettier": "^2.2.1",
+    "read-pkg-up": "^7.0.1",
     "standard-version": "^9.0.0",
     "tap-parser": "^10.1.0"
   }
