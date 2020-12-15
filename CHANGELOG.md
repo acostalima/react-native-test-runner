@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.3](https://github.com/acostalima/react-native-test-runner/compare/v1.0.2...v1.0.3) (2020-12-15)
+
+
+### Bug Fixes
+
+* add postinstall script ([ce94dfd](https://github.com/acostalima/react-native-test-runner/commit/ce94dfd0cfd7895535e8b6501a227a18cb15c5a6))
+
 ### [1.0.2](https://github.com/acostalima/react-native-test-runner/compare/v1.0.1...v1.0.2) (2020-12-15)
 
 
