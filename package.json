@@ -50,7 +50,7 @@
     "pods": "pod-install",
     "xcode": "xed -b ios",
     "studio": "studio android",
-    "postinstall": "patch -p1 -i patches/zora+4.0.1.patch",
+    "postinstall": "patch -d $(pwd) -p1 -i ./patches/zora+4.0.1.patch",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin HEAD && conventional-github-releaser -p angular",
     "test": "jest"
