@@ -10,13 +10,7 @@
 const path = require('path');
 const { promisify } = require('util');
 const ora = require('ora');
-const metro = require('metro');
 const isCI = require('is-ci');
-const { mergeConfig, getDefaultConfig } = require('metro-config');
-const metroResolver = require('metro-resolver');
-const {
-    createDevServerMiddleware,
-} = require('@react-native-community/cli-server-api');
 const TestReporter = require('./test-reporter');
 const {
     writeTestSuiteEntryFile,
@@ -38,22 +32,63 @@ const INTERNAL_CALLSITES_REGEX = new RegExp(
     ].join('|'),
 );
 
-const resolveModule = (moduleName) => {
+const getDependencyModules = (testAppPath) => {
+    const testAppModules = path.join(testAppPath, 'node_modules');
+    const reactNativePath = path.join(testAppModules, 'react-native');
+
+    return {
+        metroModules: {
+            core: require(path.join(testAppModules, 'metro')),
+            resolver: require(path.join(testAppModules, 'metro-resolver')),
+            createModuleIdFactory: require(path.join(testAppModules, 'metro', 'src', 'lib', 'createModuleIdFactory')),
+            asyncRequireModulePath: path.join(testAppModules, 'metro-runtime', 'src', 'modules', 'asyncRequire'),
+            babelTransformerPath: path.join(testAppModules, 'metro-react-native-babel-transformer'),
+            workerPath: path.join(testAppModules, 'metro', 'src', 'DeltaBundler', 'Worker'),
+            minifierPath: path.join(testAppModules, 'metro-minify-uglify'),
+            assetRegistryPath: path.join(reactNativePath, 'Libraries', 'Image', 'AssetRegistry'),
+            config: require(path.join(testAppModules, 'metro-config')),
+        },
+        reactNativeModules: {
+            corePath: reactNativePath,
+            initializeCorePath: require.resolve(path.join(reactNativePath, 'Libraries', 'Core', 'InitializeCore')),
+            cliServerApi: require(path.join(testAppModules, '@react-native-community/cli-server-api')),
+            getPolyfills: require(path.join(reactNativePath, 'rn-get-polyfills')),
+        },
+    };
+};
+
+const resolveModule = (moduleName, reactNativePath) => {
     if (moduleName === './index') {
-        return './app';
+        return './app/index';
     }
 
     if (moduleName === 'zora') {
         return path.join(__dirname, 'test-runners', 'zora', 'setup');
     }
 
+    if (moduleName === 'react-native') {
+        return reactNativePath;
+    }
+
     return moduleName;
 };
 
-const getConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081 } = {}) => {
-    const reactNativePath = path.dirname(require.resolve('react-native'));
-    const reporter = new TestReporter();
+const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testAppPath } = {}) => {
+    const {
+        reactNativeModules,
+        metroModules: {
+            resolver,
+            createModuleIdFactory,
+            asyncRequireModulePath,
+            babelTransformerPath,
+            workerPath,
+            minifierPath,
+            assetRegistryPath,
+        },
+    } = getDependencyModules(testAppPath);
     const projectRoot = path.join(__dirname, '..');
+
+    const reporter = new TestReporter();
     const testFiles = findTestFiles(testFileGlobs);
     const testSuiteFilePath = writeTestSuiteEntryFile(testFiles, cwd);
     const testDirectories = getCommonParentDirectories(testFiles, cwd);
@@ -69,32 +104,23 @@ const getConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081 } = {}) => 
             resolverMainFields: ['react-native', 'browser', 'main'],
             platforms: ['ios', 'android', 'native'],
             resolveRequest: (context, realModuleName, platform, moduleName) => {
-                moduleName = resolveModule(moduleName);
+                moduleName = resolveModule(moduleName, reactNativeModules.corePath);
 
                 const originalResolveRequest = context.resolveRequest;
 
                 delete context.resolveRequest;
 
                 try {
-                    return metroResolver.resolve(context, moduleName, platform);
+                    return resolver.resolve(context, moduleName, platform);
                 } finally {
                     context.resolveRequest = originalResolveRequest;
                 }
             },
         },
         serializer: {
-            getModulesRunBeforeMainModule: () => [
-                require.resolve(
-                    path.join(
-                        reactNativePath,
-                        'Libraries',
-                        'Core',
-                        'InitializeCore',
-                    ),
-                ),
-            ],
-            getPolyfills: () =>
-                require(path.join(reactNativePath, 'rn-get-polyfills'))(),
+            getModulesRunBeforeMainModule: () => [reactNativeModules.initializeCorePath],
+            getPolyfills: () => reactNativeModules.getPolyfills(),
+            createModuleIdFactory,
         },
         server: {
             port,
@@ -103,23 +129,17 @@ const getConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081 } = {}) => 
         },
         symbolicator: {
             customizeFrame: (frame) => {
-                const collapse = Boolean(
-                    frame.file && INTERNAL_CALLSITES_REGEX.test(frame.file),
-                );
+                const collapse = !!frame && INTERNAL_CALLSITES_REGEX.test(frame.file);
 
                 return { collapse };
             },
         },
         transformer: {
-            babelTransformerPath: require.resolve(
-                'metro-react-native-babel-transformer',
-            ),
-            assetRegistryPath: path.join(
-                reactNativePath,
-                'Libraries',
-                'Image',
-                'AssetRegistry',
-            ),
+            asyncRequireModulePath,
+            babelTransformerPath,
+            workerPath,
+            minifierPath,
+            assetRegistryPath,
             getTransformOptions: async () => ({
                 transform: {
                     experimentalImportSupport: false,
@@ -129,20 +149,26 @@ const getConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081 } = {}) => 
         },
         projectRoot,
         watchFolders: [
+            testAppPath,
             projectRoot,
             path.dirname(testSuiteFilePath),
             path.dirname(zoraConfigFilePath),
             ...testDirectories,
         ],
         reporter,
-        resetCache: isCI,
+        resetCache: true,
     };
 };
 
 const runServer = async (options) => {
     const loader = ora();
+    const { metroModules, reactNativeModules } = getDependencyModules(options.testAppPath);
+    const { mergeConfig, getDefaultConfig } = metroModules.config;
+    const { createDevServerMiddleware } = reactNativeModules.cliServerApi;
+    const metro = metroModules.core;
+
     const defaultConfig = await getDefaultConfig();
-    const config = mergeConfig(defaultConfig, getConfig(options));
+    const config = mergeConfig(defaultConfig, getMetroConfig(options));
 
     const { middleware } = createDevServerMiddleware({
         host: '',
@@ -178,4 +204,4 @@ const runServer = async (options) => {
 };
 
 module.exports = runServer;
-module.exports.getConfig = getConfig;
+module.exports.getConfig = getMetroConfig;

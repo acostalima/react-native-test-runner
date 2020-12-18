@@ -41,14 +41,14 @@ jobs:
         run: |
           npm run lint
 
-      - name: Cache Android build
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+      # - name: Cache Android build
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/.gradle/caches
+      #       ~/.gradle/wrapper
+      #     key: ${{ runner.os }}-gradle-${{ hashFiles('$HOME/.npm/rn-test-app/android/**/*.gradle*') }}-${{ hashFiles('$HOME/.npm/rn-test-app/android/gradle/wrapper/gradle-wrapper.properties') }}
+      #     restore-keys: ${{ runner.os }}-gradle-
 
       - name: Run Android tests
         uses: reactivecircus/android-emulator-runner@v2
@@ -98,18 +98,14 @@ jobs:
         run: |
           npm run lint
 
-      - name: Cache pods and repositories
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/Library/Caches/CocoaPods
-            ~/.cocoapods
-          key: ${{ runner.os }}-cocoapods-${{ hashFiles('**/Podfile.lock') }}
-          restore-keys: ${{ runner.os }}-cocoapods-
-
-      - name: Install Pods
-        run: |
-          npm run pods
+      # - name: Cache pods and repositories
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/Library/Caches/CocoaPods
+      #       ~/.cocoapods
+      #     key: ${{ runner.os }}-cocoapods-${{ hashFiles('$HOME/.npm/rn-test-app/ios/Podfile.lock') }}
+      #     restore-keys: ${{ runner.os }}-cocoapods-
 
       # - name: Set up ${{ matrix.apple-runtime }} runtime
       #   run: |
@@ -129,12 +125,12 @@ jobs:
           echo "IOS_SIMULATOR=$SIMULATOR_ID" >> $GITHUB_ENV
           xcrun simctl boot $SIMULATOR_ID &
 
-      - name: Cache iOS build
-        uses: actions/cache@v2
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData/Test-*
-          key: ${{ runner.os }}-xcodebuild-${{ hashFiles('ios/Test*/**') }}
-          restore-keys: ${{ runner.os }}-xcodebuild-
+      # - name: Cache iOS build
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/Library/Developer/Xcode/DerivedData/Test-*
+      #     key: ${{ runner.os }}-xcodebuild-${{ hashFiles('$HOME/.npm/rn-test-app/ios/Test*/**') }}
+      #     restore-keys: ${{ runner.os }}-xcodebuild-
 
       - name: Run iOS tests
         run: |

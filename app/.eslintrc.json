@@ -9,6 +9,7 @@
         "@moxy/eslint-config-react-native"
     ],
     "rules": {
-        "import/no-commonjs": "off"
+        "import/no-commonjs": "off",
+        "import/no-unresolved": "off"
     }
 }
