@@ -1,15 +1,11 @@
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs-extra');
 const globby = require('globby');
 const tempy = require('tempy');
 
 const findTestFiles = (globPatterns = []) => {
-    if (globPatterns.length === 0) {
-        globPatterns = ['**/test?(s)/**/?(*.)+(spec|test).js'];
-    }
-
     const files = globby.sync(globPatterns, { ignore: ['node_modules', '.git'] });
 
     // console.log(`Test file globs: ${globPatterns}`);
@@ -19,7 +15,7 @@ const findTestFiles = (globPatterns = []) => {
     return files;
 };
 
-const writeTestSuiteEntryFile = (testFiles, cwd) => {
+const writeTestSuiteEntryFile = (testFiles, cwd = process.cwd()) => {
     const tempFile = tempy.file({
         name: 'suite.js',
     });
@@ -41,7 +37,7 @@ const writeTestSuiteEntryFile = (testFiles, cwd) => {
 // test-suite-2/foo/bar/test.js
 // /test/test-suite-3/foo/bar/test.js
 // => [./test-suite-1, ./test-suite-2]
-const getCommonParentDirectories = (files, cwd) => {
+const getCommonParentDirectories = (files, cwd = process.cwd()) => {
     const directories = new Set();
 
     for (const file of files) {

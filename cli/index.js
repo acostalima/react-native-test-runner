@@ -4,9 +4,11 @@
 
 const path = require('path');
 const meow = require('meow');
+const semver = require('semver');
 const runIOS = require('./run-ios');
 const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
+const { createTestApp } = require('./test-app');
 
 const cli = meow(`
 Usage
@@ -20,6 +22,8 @@ Options
     --emulator, -e   Android emulator to run the test suites on.
     --metroPort, -p  Port on which Metro's server should listen to. Default: 8081.
     --cwd            Current directory. Default: process.cwd().
+    --rn             React Native version to test against. Default: 0.63.4.
+    --app            Absolute path to the test app. Default: ~/.npm/rn-test-app.
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1
@@ -60,43 +64,54 @@ Examples
             type: 'string',
             default: process.cwd(),
         },
+        rn: {
+            type: 'string',
+            default: '0.63.4',
+        },
     },
 });
 
-const { metroPort, cwd, emulator, simulator, platform } = cli.flags;
-const testFileGlobs = cli.input;
+const SUPPORTED_PLATFORMS = ['android', 'ios'];
 
-const PLATFORMS = ['android', 'ios'];
-const runTestsByPlatform = {
-    ios: () => runIOS({
-        simulator,
-        projectPath: path.join(__dirname, '..', 'ios'),
-        metroPort,
-    }),
-    android: () => runAndroid({
-        emulator,
-        projectPath: path.join(__dirname, '..', 'android'),
-        metroPort,
-    }),
-};
+const { metroPort, cwd, emulator, simulator, platform, rn: reactNativeVersion } = cli.flags;
+const testFileGlobs = cli.input.length === 0 ? ['**/test?(s)/**/?(*.)+(spec|test).js'] : cli.input;
 
-if (!PLATFORMS.includes(platform)) {
-    console.error(`Unknown platform: ${platform}. Supported platforms are: ${PLATFORMS.join(', ')}.`);
+if (!SUPPORTED_PLATFORMS.includes(platform)) {
+    console.error(`Unknown platform: ${platform}. Supported platforms are: ${SUPPORTED_PLATFORMS.join(', ')}.`);
     process.exit(2);
 }
 
+if (!semver.valid(reactNativeVersion)) {
+    console.error(`Invalid React Native version scheme: ${reactNativeVersion}. Must be compliant with Semantic Version.`);
+    process.exit(2);
+}
+
+const runNativePlatform = (platform, testAppPath) => {
+    const options = { projectPath: path.join(testAppPath, platform), metroPort };
+
+    switch (platform) {
+    case 'android':
+        return runAndroid({ emulator, ...options });
+    case 'ios':
+        return runIOS({ simulator, ...options });
+    default:
+        throw new Error(`Developer error. Unknown platform: ${platform}`);
+    }
+};
+
 const run = async () => {
     try {
+        const { appPath: testAppPath } = await createTestApp({ reactNativeVersion });
         const { testReporter } = await runMetroServer({
             cwd,
             port: metroPort,
             testFileGlobs,
+            testAppPath,
         });
-        const runPlatform = runTestsByPlatform[platform];
-        const shutdownPlatform = await runPlatform();
+        const shutdownNativePlatform = await runNativePlatform(platform, testAppPath);
 
         await testReporter.waitForTests();
-        await shutdownPlatform();
+        await shutdownNativePlatform();
 
         process.exit(testReporter.pass ? 0 : 1);
     } catch (error) {
