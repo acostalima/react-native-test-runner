@@ -67,6 +67,10 @@ const resolveModule = (moduleName, testAppModulesPath) => {
         return path.join(__dirname, 'test-runners', 'zora', 'setup');
     }
 
+    if (moduleName === 'zora/dist/bundle') {
+        return path.join(process.cwd(), 'node_modules', moduleName);
+    }
+
     if (moduleName === 'react-native') {
         return path.join(testAppModulesPath, moduleName);
     }
