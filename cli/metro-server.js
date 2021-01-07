@@ -67,15 +67,7 @@ const resolveModule = (moduleName, testAppModulesPath) => {
         return path.join(__dirname, 'test-runners', 'zora', 'setup');
     }
 
-    if (moduleName === 'zora/dist/bundle') {
-        return path.join(process.cwd(), 'node_modules', moduleName);
-    }
-
-    if (moduleName === 'react-native') {
-        return path.join(testAppModulesPath, moduleName);
-    }
-
-    if (moduleName.startsWith('@babel')) {
+    if (moduleName.match(/^react$|^react-native$|^@babel|^prop-types$/)) {
         return path.join(testAppModulesPath, moduleName);
     }
 
@@ -159,6 +151,7 @@ const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testA
         },
         projectRoot,
         watchFolders: [
+            process.cwd(),
             testAppPath,
             projectRoot,
             path.dirname(testSuiteFilePath),
