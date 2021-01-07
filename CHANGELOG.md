@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.6](https://github.com/acostalima/react-native-test-runner/compare/v1.0.5...v1.0.6) (2021-01-07)
+
+
+### Bug Fixes
+
+* add babel dependencies to metro module resolution ([57d9c48](https://github.com/acostalima/react-native-test-runner/commit/57d9c48447441a37dcee2ae290335941f7e943b0))
+
 ### [1.0.5](https://github.com/acostalima/react-native-test-runner/compare/v1.0.4...v1.0.5) (2021-01-07)
 
 
