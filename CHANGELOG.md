@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.5](https://github.com/acostalima/react-native-test-runner/compare/v1.0.4...v1.0.5) (2021-01-07)
+
+
+### Bug Fixes
+
+* test app is now created by the cli and is no longer packaged ([f85f071](https://github.com/acostalima/react-native-test-runner/commit/f85f07161646664ed6e83aa34c87f1bac05f77fd))
+
 ### [1.0.4](https://github.com/acostalima/react-native-test-runner/compare/v1.0.3...v1.0.4) (2020-12-15)
 
 
