@@ -33,31 +33,32 @@ const INTERNAL_CALLSITES_REGEX = new RegExp(
 );
 
 const getDependencyModules = (testAppPath) => {
-    const testAppModules = path.join(testAppPath, 'node_modules');
-    const reactNativePath = path.join(testAppModules, 'react-native');
+    const testAppModulesPath = path.join(testAppPath, 'node_modules');
+    const reactNativePath = path.join(testAppModulesPath, 'react-native');
 
     return {
         metroModules: {
-            core: require(path.join(testAppModules, 'metro')),
-            resolver: require(path.join(testAppModules, 'metro-resolver')),
-            createModuleIdFactory: require(path.join(testAppModules, 'metro', 'src', 'lib', 'createModuleIdFactory')),
-            asyncRequireModulePath: path.join(testAppModules, 'metro-runtime', 'src', 'modules', 'asyncRequire'),
-            babelTransformerPath: path.join(testAppModules, 'metro-react-native-babel-transformer'),
-            workerPath: path.join(testAppModules, 'metro', 'src', 'DeltaBundler', 'Worker'),
-            minifierPath: path.join(testAppModules, 'metro-minify-uglify'),
+            core: require(path.join(testAppModulesPath, 'metro')),
+            resolver: require(path.join(testAppModulesPath, 'metro-resolver')),
+            createModuleIdFactory: require(path.join(testAppModulesPath, 'metro', 'src', 'lib', 'createModuleIdFactory')),
+            asyncRequireModulePath: path.join(testAppModulesPath, 'metro-runtime', 'src', 'modules', 'asyncRequire'),
+            babelTransformerPath: path.join(testAppModulesPath, 'metro-react-native-babel-transformer'),
+            workerPath: path.join(testAppModulesPath, 'metro', 'src', 'DeltaBundler', 'Worker'),
+            minifierPath: path.join(testAppModulesPath, 'metro-minify-uglify'),
             assetRegistryPath: path.join(reactNativePath, 'Libraries', 'Image', 'AssetRegistry'),
-            config: require(path.join(testAppModules, 'metro-config')),
+            config: require(path.join(testAppModulesPath, 'metro-config')),
         },
         reactNativeModules: {
             corePath: reactNativePath,
             initializeCorePath: require.resolve(path.join(reactNativePath, 'Libraries', 'Core', 'InitializeCore')),
-            cliServerApi: require(path.join(testAppModules, '@react-native-community/cli-server-api')),
+            cliServerApi: require(path.join(testAppModulesPath, '@react-native-community/cli-server-api')),
             getPolyfills: require(path.join(reactNativePath, 'rn-get-polyfills')),
         },
+        testAppModulesPath,
     };
 };
 
-const resolveModule = (moduleName, reactNativePath) => {
+const resolveModule = (moduleName, testAppModulesPath) => {
     if (moduleName === './index') {
         return './app/index';
     }
@@ -67,7 +68,11 @@ const resolveModule = (moduleName, reactNativePath) => {
     }
 
     if (moduleName === 'react-native') {
-        return reactNativePath;
+        return path.join(testAppModulesPath, moduleName);
+    }
+
+    if (moduleName.startsWith('@babel')) {
+        return path.join(testAppModulesPath, moduleName);
     }
 
     return moduleName;
@@ -75,6 +80,7 @@ const resolveModule = (moduleName, reactNativePath) => {
 
 const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testAppPath } = {}) => {
     const {
+        testAppModulesPath,
         reactNativeModules,
         metroModules: {
             resolver,
@@ -104,7 +110,7 @@ const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testA
             resolverMainFields: ['react-native', 'browser', 'main'],
             platforms: ['ios', 'android', 'native'],
             resolveRequest: (context, realModuleName, platform, moduleName) => {
-                moduleName = resolveModule(moduleName, reactNativeModules.corePath);
+                moduleName = resolveModule(moduleName, testAppModulesPath);
 
                 const originalResolveRequest = context.resolveRequest;
 
