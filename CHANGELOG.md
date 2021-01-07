@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.7](https://github.com/acostalima/react-native-test-runner/compare/v1.0.6...v1.0.7) (2021-01-07)
+
+
+### Bug Fixes
+
+* add zora to metro module resolution ([aefe141](https://github.com/acostalima/react-native-test-runner/commit/aefe14177d93bae5121bc2654db09793ca545d2e))
+
 ### [1.0.6](https://github.com/acostalima/react-native-test-runner/compare/v1.0.5...v1.0.6) (2021-01-07)
 
 
