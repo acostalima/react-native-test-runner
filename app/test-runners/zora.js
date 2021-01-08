@@ -10,7 +10,7 @@ const setup = () => {
             await zora.report();
             console.log(zora.pass ? 'pass' : 'fail');
         } catch (error) {
-            console.log('fail');
+            console.log('fail', { error });
         } finally {
             delete window.addEventListener;
         }

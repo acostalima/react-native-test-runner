@@ -64,20 +64,26 @@ class TestReporter {
     }
 
     logTestResults(data) {
-        if (data.match(/^TAP version/)) {
+        const output = data[0];
+
+        if (output.match(/^TAP version/)) {
             this.pass = null;
             this.running = true;
         }
 
-        if (data === 'fail' || data === 'pass') {
+        if (output === 'fail' || output === 'pass') {
             this.running = false;
             this.pass = data === 'pass';
             this.doneSignal.dispatch();
 
+            if (!this.pass) {
+                console.error(data[1]);
+            }
+
             return;
         }
 
-        console.log(data);
+        console.log(output);
     }
 }
 
