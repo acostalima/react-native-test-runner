@@ -73,7 +73,7 @@ class TestReporter {
 
         if (output === 'fail' || output === 'pass') {
             this.running = false;
-            this.pass = data === 'pass';
+            this.pass = output === 'pass';
             this.doneSignal.dispatch();
 
             if (!this.pass) {
