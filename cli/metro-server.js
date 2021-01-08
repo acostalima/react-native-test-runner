@@ -67,7 +67,7 @@ const resolveModule = (moduleName, testAppModulesPath) => {
         return path.join(__dirname, 'test-runners', 'zora', 'setup');
     }
 
-    if (moduleName.match(/^react$|^react-native$|^@babel|^prop-types$/)) {
+    if (moduleName.match(/^react$|^react-native|^@babel|^prop-types$/)) {
         return path.join(testAppModulesPath, moduleName);
     }
 
