@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.10](https://github.com/acostalima/react-native-test-runner/compare/v1.0.9...v1.0.10) (2021-01-11)
+
+
+### Bug Fixes
+
+* reset metro cache only on ci ([45cc6b0](https://github.com/acostalima/react-native-test-runner/commit/45cc6b09323beef9a8372fa8be5c1d357bfb9b1c))
+* resolve module request for ./index should only target app root ([f0354c2](https://github.com/acostalima/react-native-test-runner/commit/f0354c2bd633c8474c1e4d7d020b3d459d8325ea))
+* test results logging should receive metro client_log event data ([0ee436a](https://github.com/acostalima/react-native-test-runner/commit/0ee436a82d2de71548310470b7679c8a57764336))
+
 ### [1.0.9](https://github.com/acostalima/react-native-test-runner/compare/v1.0.8...v1.0.9) (2021-01-11)
 
 
