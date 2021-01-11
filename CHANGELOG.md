@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.9](https://github.com/acostalima/react-native-test-runner/compare/v1.0.8...v1.0.9) (2021-01-11)
+
+
+### Bug Fixes
+
+* do not log empty error data ([061a446](https://github.com/acostalima/react-native-test-runner/commit/061a446ad8ad76d96ebf97f92a7332001a3fd2c1))
+* fail and pass check given output message ([b7898ae](https://github.com/acostalima/react-native-test-runner/commit/b7898ae99577598c5872dd08fd7226e789bb8c62))
+* log errors captured by zora ([10a65cc](https://github.com/acostalima/react-native-test-runner/commit/10a65cc0e7cc1d4d99f72bdb1cb1c2e79d5fd9dd))
+* resolve module requests for react native modules in metro ([abe3b64](https://github.com/acostalima/react-native-test-runner/commit/abe3b648529a35c0878e7f7b1963f9146e24b1e5))
+
 ### [1.0.8](https://github.com/acostalima/react-native-test-runner/compare/v1.0.7...v1.0.8) (2021-01-07)
 
 
