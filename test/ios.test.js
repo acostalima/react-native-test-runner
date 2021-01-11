@@ -192,7 +192,7 @@ test('bail out if only test runs and RUN_ONLY is not set', async () => {
                 actual: \\"fail called\\"
                 expected: \\"fail not called\\"
                 operator: \\"fail\\"
-                at: \\"getAssertionLocation@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false:99280:24\\"
+                at: \\"getAssertionLocation@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false:99282:24\\"
               ...
             # should run 2
             Bail out! Unhandled error."
