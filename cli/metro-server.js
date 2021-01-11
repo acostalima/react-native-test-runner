@@ -51,15 +51,15 @@ const getDependencyModules = (testAppPath) => {
         reactNativeModules: {
             corePath: reactNativePath,
             initializeCorePath: require.resolve(path.join(reactNativePath, 'Libraries', 'Core', 'InitializeCore')),
-            cliServerApi: require(path.join(testAppModulesPath, '@react-native-community/cli-server-api')),
+            cliServerApi: require(path.join(testAppModulesPath, '@react-native-community', 'cli-server-api')),
             getPolyfills: require(path.join(reactNativePath, 'rn-get-polyfills')),
         },
         testAppModulesPath,
     };
 };
 
-const resolveModule = (moduleName, testAppModulesPath) => {
-    if (moduleName === './index') {
+const resolveModule = (context, moduleName, testAppModulesPath) => {
+    if (moduleName === './index' && context.originModulePath.endsWith('react-native-test-runner/.')) {
         return './app/index';
     }
 
@@ -106,7 +106,7 @@ const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testA
             resolverMainFields: ['react-native', 'browser', 'main'],
             platforms: ['ios', 'android', 'native'],
             resolveRequest: (context, realModuleName, platform, moduleName) => {
-                moduleName = resolveModule(moduleName, testAppModulesPath);
+                moduleName = resolveModule(context, moduleName, testAppModulesPath);
 
                 const originalResolveRequest = context.resolveRequest;
 
