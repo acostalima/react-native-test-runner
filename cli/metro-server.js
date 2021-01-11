@@ -159,7 +159,7 @@ const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testA
             ...testDirectories,
         ],
         reporter,
-        resetCache: true,
+        resetCache: isCI,
     };
 };
 
