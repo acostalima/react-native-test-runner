@@ -42,7 +42,7 @@ class TestReporter {
             break;
         }
         case 'client_log':
-            this.logTestResults(event.data[0]);
+            this.logTestResults(event.data);
             break;
         default:
             break;
