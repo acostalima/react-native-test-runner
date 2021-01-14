@@ -23,7 +23,7 @@ $ npm install -D react-native-test-runner
 - No coverage.
 - Only iOS simulators and Android emulators are supported.
 - JavaScriptCore (JSC) engine only on both Android and iOS.
-- No TypeScript (TS) support.
+- No TypeScript (TS) support yet.
 - Not yet possible to run tests against native modules.
 ## Usage
 
@@ -55,7 +55,9 @@ Examples
     # Run tests on Android emulator
     $ rn-test --platform android --emulator 'Pixel_API_28_AOSP' 'test/**/*.test.js'
 ```
+# Known issues
 
+- `metroPort` option does not work on iOS. While Metro does listen to the specified port, the app, as a client, still attempts to load the bundle from port 8081. See https://github.com/facebook/react-native/issues/9145.
 ## License
 
 MIT © [André Costa Lima](https://github.com/acostalima)
