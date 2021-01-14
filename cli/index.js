@@ -19,7 +19,7 @@ Usage
 Options
     --plaform, -p    Platform on which to run the test suites on. Options: 'ios', 'android'.
     --simulator, -s  iOS simulator to run the test suites on.
-    --emulator, -e   Android emulator to run the test suites on.
+    --emulator, -e   Android emulator or virtual device (AVD) to run the test suites on.
     --metroPort, -p  Port on which Metro's server should listen to. Default: 8081.
     --cwd            Current directory. Default: process.cwd().
     --rn             React Native version to test against. Default: 0.63.4.
