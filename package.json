@@ -31,7 +31,7 @@
     "babel.config.js"
   ],
   "scripts": {
-    "lint": "eslint --cache --ignore-path .gitignore *.js",
+    "lint": "eslint --cache --ignore-path .gitignore .",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin HEAD && conventional-github-releaser -p angular",
     "test": "jest"
