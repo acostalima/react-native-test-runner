@@ -55,7 +55,7 @@ Examples
     # Run tests on Android emulator
     $ rn-test --platform android --emulator 'Pixel_API_28_AOSP' 'test/**/*.test.js'
 ```
-# Known issues
+## Known issues
 
 - `metroPort` option does not work on iOS. While Metro does listen to the specified port, the app, as a client, still attempts to load the bundle from port 8081. See https://github.com/facebook/react-native/issues/9145.
 ## License
