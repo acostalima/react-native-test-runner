@@ -5,25 +5,34 @@ const fs = require('fs-extra');
 const globby = require('globby');
 const tempy = require('tempy');
 
-const findTestFiles = (globPatterns = []) => {
-    const files = globby.sync(globPatterns, { ignore: ['node_modules', '.git'] });
+const expandGlobs = (globPatterns = [], cwd = process.cwd()) => {
+    const filePaths = globby.sync(globPatterns, {
+        cwd,
+        ignore: [
+            'node_modules',
+            '.git',
+            'coverage',
+            '**/test?(s)/**/fixture?(s)/**/*',
+            '**/__tests__/**/__fixture?(s)__/**/*',
+        ],
+    });
 
     // console.log(`Test file globs: ${globPatterns}`);
     // console.log('Expanded test file paths:');
-    // console.log(`${files.map((file) => `   - ${file}`).join('\n')}`);
+    // console.log(`${filePaths.map((file) => `   - ${file}`).join('\n')}`);
 
-    return files;
+    return filePaths;
 };
 
-const writeTestSuiteEntryFile = (testFiles, cwd = process.cwd()) => {
+const writeTestSuiteEntryFile = (testFilePaths, cwd = process.cwd()) => {
     const tempFile = tempy.file({
-        name: 'suite.js',
+        name: 'test-suite.js',
     });
-    const requires = testFiles
+    const testSuite = testFilePaths
         .map((file) => `require('${path.resolve(cwd, file)}');`)
         .join('\n');
 
-    fs.writeFileSync(tempFile, requires);
+    fs.writeFileSync(tempFile, testSuite);
 
     return tempFile;
 };
@@ -65,7 +74,7 @@ const getCommonParentDirectories = (files, cwd = process.cwd()) => {
 };
 
 module.exports = {
-    findTestFiles,
+    expandGlobs,
     writeTestSuiteEntryFile,
     getCommonParentDirectories,
 };

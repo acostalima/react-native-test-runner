@@ -5,8 +5,12 @@ const ora = require('ora');
 class OraBundleProgressBar {
     loader = ora();
 
+    constructor(testRunner) {
+        this.testRunner = testRunner;
+    }
+
     onStart() {
-        this.loader.start('Bundling JavaScript');
+        this.loader.start(`Bundling JavaScript to execute tests with ${this.testRunner} test runner`);
     }
 
     onProgress(/* { transformedFileCount, totalFileCount } */) {}
@@ -15,7 +19,7 @@ class OraBundleProgressBar {
         this.loader.succeed();
     }
 
-    onError(error) {
+    onError({ error }) {
         this.loader.fail();
         console.error(error);
     }
