@@ -1,5 +1,8 @@
 const filterRNLogs = () => {
-    const filters = ['^Running "Test"'].join('|');
+    const filters = [
+        '^Running "Test"',
+        'Require cycles are allowed, but can result in uninitialized values.',
+    ].join('|');
     const filterRegExp = new RegExp(filters);
 
     [
@@ -8,18 +11,15 @@ const filterRNLogs = () => {
         'warn',
         'error',
         'log',
-        'group',
-        'groupCollapsed',
-        'groupEnd',
         'debug',
     ].forEach((level) => {
-        const originalFunction = console[level];
+        const originalFn = console[level];
 
         console[level] = (...args) => {
-            if (args?.[0].match(filterRegExp)) {
+            if (args?.[0]?.match(filterRegExp)) {
                 return;
             }
-            originalFunction.apply(console, args);
+            originalFn.apply(console, args);
         };
     });
 };

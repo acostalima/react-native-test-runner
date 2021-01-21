@@ -12,13 +12,13 @@ const semver = require('semver');
 
 const rmdir = promisify(fs.rmdir);
 
-const createTestApp = async ({
+module.exports = async ({
     reactNativeVersion = '0.63.4',
     appPath = path.join(os.homedir(), '.npm', 'rn-test-app'),
 } = {}) => {
     const loader = ora();
 
-    const removeApp = async () => {
+    const remove = async () => {
         loader.start(`Removing test app at ${appPath}`);
         try {
             await rmdir(appPath, { recursive: true });
@@ -38,12 +38,12 @@ const createTestApp = async ({
     }
 
     if (appPkg && semver.neq(reactNativeVersion, appPkg.dependencies['react-native'])) {
-        await removeApp();
+        await remove();
         appPkg = null;
     }
 
     if (appPkg) {
-        return ({ removeApp, appPath });
+        return appPath;
     }
 
     try {
@@ -67,12 +67,5 @@ const createTestApp = async ({
         throw error;
     }
 
-    return ({
-        removeApp,
-        appPath,
-    });
-};
-
-module.exports = {
-    createTestApp,
+    return appPath;
 };

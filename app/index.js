@@ -4,10 +4,10 @@ import { filterRNLogs } from './utils';
 const App = () => null;
 
 filterRNLogs();
-LogBox.ignoreAllLogs();
+LogBox?.ignoreAllLogs?.();
 AppRegistry.registerComponent('Test', () => App);
 
-const setup = require('./test-runners/zora').default;
+const setup = require('runner');
 
 const run = setup();
 

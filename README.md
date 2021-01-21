@@ -17,11 +17,21 @@
 $ npm install -D react-native-test-runner
 ```
 
+## Features 
+
+- Supported test runners
+    - [Zora](https://github.com/lorenzofox3/zora)
+    - [Mocha](https://github.com/mochajs/mocha/)
+- Supported assertion libraries
+    - [Chai](https://www.chaijs.com/)
+- React Native version selection
+- iOS runtime and simulator selection
+- Android AVD selection
+
 ## Limitations
 
-- Support for [Zora](https://github.com/lorenzofox3/zora) test runner only.
-- No coverage.
-- Only iOS simulators and Android emulators are supported.
+- No coverage output.
+- No support for Windows and MacOS.
 - JavaScriptCore (JSC) engine only on both Android and iOS.
 - No TypeScript (TS) support yet.
 - Not yet possible to run tests against native modules.
@@ -29,21 +39,21 @@ $ npm install -D react-native-test-runner
 
 ```
 Usage
-    $ rn-test [--platform 'ios' | --platform 'android'] [globs ...]
+    $ rn-test --platform ['ios' | 'android'] [--simulator ios_simulator | --emulator android_avd] [globs ...]
 
     Default glob: **/test?(s)/**/?(*.)+(spec|test).js.
 
 Options
-    --plaform, -p    Platform on which to run the test suites on. Options: 'ios', 'android'.
-    --simulator, -s  iOS simulator to run the test suites on.
-    --emulator, -e   Android emulator or virtual device (AVD) to run the test suites on.
-    --metroPort, -p  Port on which Metro's server should listen to. Default: 8081.
-    --cwd            Current directory. Default: process.cwd().
-    --rn             React Native version to test against. Default: 0.63.4.
-    --app            Absolute path to the test app. Default: ~/.npm/rn-test-app.
+    --plaform, -p    Platform on which to run the test suite on. One of: 'ios', 'android'.
+    --simulator, -s  iOS simulator to run the test suite on.
+    --emulator, -e   Android emulator or virtual device (AVD) to run the test suite on.
+    --metroPort, -p  Port on which Metro's server should listen to. [Default: 8081]
+    --cwd            Current directory. [Default: process.cwd()]
+    --rn             React Native version to use. [Default: 0.63.4]
+    --runner, -r     Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
 
 Examples
-    # Run tests on iPhone 11 simulator with iOS version 14.1
+    # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
     $ rn-test --platform ios --simulator 'iPhone 11 (14.1)' 'test/**/*.test.js'
 
     # Run tests on iPhone 11 simulator with whatever iOS version is available

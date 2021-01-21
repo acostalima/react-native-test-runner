@@ -11,13 +11,6 @@ const path = require('path');
 const { promisify } = require('util');
 const ora = require('ora');
 const isCI = require('is-ci');
-const TestReporter = require('./test-reporter');
-const {
-    writeTestSuiteEntryFile,
-    findTestFiles,
-    getCommonParentDirectories,
-} = require('./utils');
-const writeZoraConfigFile = require('./test-runners/zora/config');
 
 const INTERNAL_CALLSITES_REGEX = new RegExp(
     [
@@ -32,7 +25,7 @@ const INTERNAL_CALLSITES_REGEX = new RegExp(
     ].join('|'),
 );
 
-const getDependencyModules = (testAppPath) => {
+const getTestAppDependencies = (testAppPath) => {
     const testAppModulesPath = path.join(testAppPath, 'node_modules');
     const reactNativePath = path.join(testAppModulesPath, 'react-native');
 
@@ -58,13 +51,15 @@ const getDependencyModules = (testAppPath) => {
     };
 };
 
-const resolveModule = (context, moduleName, testAppModulesPath) => {
-    if (moduleName === './index' && context.originModulePath.endsWith('react-native-test-runner/.')) {
-        return './app/index';
+const createResolveModule = (testRunner, testAppModulesPath) => (context, moduleName) => {
+    const nativeTestRunnerPath = testRunner.resolveNativeModule && testRunner.resolveNativeModule(moduleName);
+
+    if (nativeTestRunnerPath) {
+        return nativeTestRunnerPath;
     }
 
-    if (moduleName === 'zora') {
-        return path.join(__dirname, 'test-runners', 'zora', 'setup');
+    if (moduleName === './index' && context.originModulePath.endsWith('react-native-test-runner/.')) {
+        return './app/index';
     }
 
     if (moduleName.match(/^react$|^react-native|^@babel|^prop-types$/)) {
@@ -74,7 +69,11 @@ const resolveModule = (context, moduleName, testAppModulesPath) => {
     return moduleName;
 };
 
-const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testAppPath } = {}) => {
+const getMetroConfig = ({
+    testAppPath,
+    port,
+    testRunner,
+}) => {
     const {
         testAppModulesPath,
         reactNativeModules,
@@ -87,26 +86,25 @@ const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testA
             minifierPath,
             assetRegistryPath,
         },
-    } = getDependencyModules(testAppPath);
+    } = getTestAppDependencies(testAppPath);
     const projectRoot = path.join(__dirname, '..');
 
-    const reporter = new TestReporter();
-    const testFiles = findTestFiles(testFileGlobs);
-    const testSuiteFilePath = writeTestSuiteEntryFile(testFiles, cwd);
-    const testDirectories = getCommonParentDirectories(testFiles, cwd);
-    const zoraConfigFilePath = writeZoraConfigFile();
+    const resolveModule = createResolveModule(testRunner, testAppModulesPath);
+    const testRunnerConfigFilePath = testRunner.writeConfigFile();
+    const { testSuiteFilePath, testDirectoryPaths } = testRunner.resolveTestSuite();
 
     return {
         resolver: {
             useWatchman: !isCI,
             extraNodeModules: {
-                suite: testSuiteFilePath,
-                config: zoraConfigFilePath,
+                runner: testRunner.resolveNativeRunner(),
+                'test-suite': testSuiteFilePath,
+                'runner-config': testRunnerConfigFilePath,
             },
             resolverMainFields: ['react-native', 'browser', 'main'],
             platforms: ['ios', 'android', 'native'],
             resolveRequest: (context, realModuleName, platform, moduleName) => {
-                moduleName = resolveModule(context, moduleName, testAppModulesPath);
+                moduleName = resolveModule(context, moduleName);
 
                 const originalResolveRequest = context.resolveRequest;
 
@@ -155,20 +153,24 @@ const getMetroConfig = ({ cwd = process.cwd(), testFileGlobs, port = 8081, testA
             testAppPath,
             projectRoot,
             path.dirname(testSuiteFilePath),
-            path.dirname(zoraConfigFilePath),
-            ...testDirectories,
+            path.dirname(testRunnerConfigFilePath),
+            ...testDirectoryPaths,
         ],
-        reporter,
+        reporter: testRunner.reporter,
         resetCache: isCI,
     };
 };
 
 const runServer = async (options) => {
-    const loader = ora();
-    const { metroModules, reactNativeModules } = getDependencyModules(options.testAppPath);
-    const { mergeConfig, getDefaultConfig } = metroModules.config;
-    const { createDevServerMiddleware } = reactNativeModules.cliServerApi;
-    const metro = metroModules.core;
+    const {
+        metroModules: {
+            core: metro,
+            config: { mergeConfig, getDefaultConfig },
+        },
+        reactNativeModules: {
+            cliServerApi: { createDevServerMiddleware },
+        },
+    } = getTestAppDependencies(options.testAppPath);
 
     const defaultConfig = await getDefaultConfig();
     const config = mergeConfig(defaultConfig, getMetroConfig(options));
@@ -178,7 +180,6 @@ const runServer = async (options) => {
         port: config.server.port,
         watchFolders: config.watchFolders,
     });
-
     const customEnhanceMiddleware = config.server.enhanceMiddleware;
 
     config.server.enhanceMiddleware = (metroMiddleware, server) => {
@@ -192,8 +193,9 @@ const runServer = async (options) => {
     const server = await metro.runServer(config, {
         hmrEnabled: true,
     });
-
     const closeServer = async () => {
+        const loader = ora();
+
         try {
             loader.start('Closing Metro server');
             await promisify(server.close).call(server);
@@ -203,8 +205,7 @@ const runServer = async (options) => {
         }
     };
 
-    return { closeServer, testReporter: config.reporter };
+    return closeServer;
 };
 
 module.exports = runServer;
-module.exports.getConfig = getMetroConfig;
