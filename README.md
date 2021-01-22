@@ -19,14 +19,14 @@ $ npm install -D react-native-test-runner
 
 ## Features 
 
-- Supported test runners
+- Supported test runners:
     - [Zora](https://github.com/lorenzofox3/zora)
     - [Mocha](https://github.com/mochajs/mocha/)
-- Supported assertion libraries
-    - [Chai](https://www.chaijs.com/)
-- React Native version selection
-- iOS runtime and simulator selection
-- Android AVD selection
+- Supported assertion libraries:
+    - [Chai](https://github.com/chaijs/chai)
+- React Native version selection.
+- iOS runtime and simulator selection.
+- Android AVD selection.
 
 ## Limitations
 
