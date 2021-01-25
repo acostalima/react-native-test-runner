@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/acostalima/react-native-test-runner/compare/v1.0.10...v2.0.0) (2021-01-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* zora and mocha are dev dependencies
+
+### Features
+
+* add support for mocha test runner ([c9424ba](https://github.com/acostalima/react-native-test-runner/commit/c9424bab29c238621aedceb73cbc9ca5d0a3336f))
+
 ### [1.0.10](https://github.com/acostalima/react-native-test-runner/compare/v1.0.9...v1.0.10) (2021-01-11)
 
 
