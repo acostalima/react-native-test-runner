@@ -23,6 +23,6 @@ module.exports = compose(
             '!*.setup.js',
             '!coverage/**',
         ],
-        coverageThreshold: undefined,
+        collectCoverage: false,
     }),
 );
