@@ -36,12 +36,12 @@ const applyPatches = (loader, nativeTestAppRoot, patches) => {
     patches.forEach(({ path: patchFilePath, cwd = nativeTestAppRoot }) => {
         patchFilePath = path.resolve(cwd, patchFilePath);
 
-        loader.start(`Applying patch to test app: ${patchFilePath}`);
+        loader.start(`Applying patch ${patchFilePath}`);
         try {
             execa.sync('git', ['apply', '--ignore-whitespace', patchFilePath], { cwd });
             loader.succeed();
         } catch (error) {
-            if (error.message.match(/^error: patch failed:/)) {
+            if (error.stderr.match(/^error: patch failed:/)) {
                 loader.warn(`Patch failed: ${patchFilePath}. Proceeding anyway`);
             } else {
                 loader.fail();
