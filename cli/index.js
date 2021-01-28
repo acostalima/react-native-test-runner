@@ -11,6 +11,7 @@ const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
 const createNativeTestApp = require('./create-native-test-app');
 const createTestRunner = require('./test-runners');
+const { findMonoRepoRoot } = require('./utils');
 
 const fileConfigExplorer = loadConfigFile('rn-test', { stopDir: process.cwd() });
 const fileConfigSearchResult = fileConfigExplorer.search();
@@ -140,6 +141,9 @@ const runNativeTestApp = (options) => {
 
 const runTests = async (options, testFileGlobs) => {
     try {
+        const monoRepoRoot = findMonoRepoRoot(options.cwd);
+        const jsAppRoot = path.join(__dirname, '..');
+
         const testRunner = createTestRunner(options, testFileGlobs);
         const { nativeTestAppRoot, removeNativeTestApp } = await createNativeTestApp(options);
 
@@ -147,6 +151,8 @@ const runTests = async (options, testFileGlobs) => {
             cwd: options.cwd,
             port: options.metroPort,
             nativeTestAppRoot,
+            monoRepoRoot,
+            jsAppRoot,
             testRunner,
         });
 

@@ -12,13 +12,13 @@ const semver = require('semver');
 
 const rmdir = promisify(fs.rmdir);
 
-const installNativeModules = async (loader, appPath, modules) => {
+const installNativeModules = async (loader, nativeTestAppRoot, modules) => {
     if (modules.length === 0) {
         return;
     }
 
     loader.start('Installing dependencies with native modules in test app');
-    await execa('npm', ['install', ...modules], { cwd: appPath });
+    await execa('npm', ['install', ...modules], { cwd: nativeTestAppRoot });
     loader.succeed();
 };
 
@@ -28,22 +28,30 @@ const getNativeModulesToInstall = (appPkg, modules) => modules.filter((module) =
     return !isAlreadyInstalled;
 });
 
-const applyPatches = async (cwd, loader, appPath, patches) => {
+const applyPatches = (loader, nativeTestAppRoot, patches) => {
     if (patches.length === 0) {
         return;
     }
 
-    loader.start('Applying patches to test app');
-    await Promise.all(patches.map((patch) => {
-        patch = path.resolve(cwd, patch);
+    patches.forEach(({ path: patchFilePath, cwd = nativeTestAppRoot }) => {
+        patchFilePath = path.resolve(cwd, patchFilePath);
 
-        return execa('git', ['apply', '--ignore-whitespace', patch], { cwd: appPath });
-    }));
-    loader.succeed();
+        loader.start(`Applying patch to test app: ${patchFilePath}`);
+        try {
+            execa.sync('git', ['apply', '--ignore-whitespace', patchFilePath], { cwd });
+            loader.succeed();
+        } catch (error) {
+            if (error.message.match(/^error: patch failed:/)) {
+                loader.warn(`Patch failed: ${patchFilePath}. Proceeding anyway`);
+            } else {
+                loader.fail();
+                throw error;
+            }
+        }
+    });
 };
 
 module.exports = async ({
-    cwd,
     rn: reactNativeVersion = '0.63.4',
     nativeTestAppRoot = path.join(os.homedir(), '.npm', 'rn-test-app'),
     nativeModules = [],
@@ -79,7 +87,7 @@ module.exports = async ({
         const modulesToInstall = getNativeModulesToInstall(appPkg, nativeModules);
 
         await installNativeModules(loader, nativeTestAppRoot, modulesToInstall);
-        await applyPatches(cwd, loader, nativeTestAppRoot, patches);
+        await applyPatches(loader, nativeTestAppRoot, patches);
 
         return { nativeTestAppRoot, removeNativeTestApp };
     }
@@ -101,7 +109,7 @@ module.exports = async ({
             loader.succeed();
 
             await installNativeModules(loader, nativeTestAppRoot, nativeModules);
-            await applyPatches(cwd, loader, nativeTestAppRoot, patches);
+            await applyPatches(loader, nativeTestAppRoot, patches);
         });
     } catch (error) {
         loader.fail();

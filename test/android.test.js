@@ -299,9 +299,9 @@ describe('zora', () => {
                 emulator: ANDROID_EMULATOR,
                 runner: 'zora',
                 removeNativeTestApp: true,
-                patches: [
-                    'node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch',
-                ],
+                patches: [{
+                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
+                }],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -481,9 +481,9 @@ describe('mocha', () => {
                 emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
                 removeNativeTestApp: true,
-                patches: [
-                    'node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch',
-                ],
+                patches: [{
+                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
+                }],
             };
             const filePath = path.join(directoryPath, 'config.json');
 

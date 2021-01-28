@@ -11,7 +11,6 @@ const path = require('path');
 const { promisify } = require('util');
 const ora = require('ora');
 const isCI = require('is-ci');
-const { findMonoRepoRoot } = require('./utils');
 
 const INTERNAL_CALLSITES_REGEX = new RegExp(
     [
@@ -73,6 +72,8 @@ const createResolveModule = (testRunner, testAppModulesPath) => (context, module
 const getMetroConfig = ({
     cwd,
     nativeTestAppRoot,
+    monoRepoRoot,
+    jsAppRoot,
     port,
     testRunner,
 }) => {
@@ -89,8 +90,6 @@ const getMetroConfig = ({
             assetRegistryPath,
         },
     } = getTestAppDependencies(nativeTestAppRoot);
-    const jsAppRoot = path.join(__dirname, '..');
-    const monoRepoRoot = findMonoRepoRoot(cwd);
 
     const resolveModule = createResolveModule(testRunner, testAppModulesPath);
     const testRunnerConfigFilePath = testRunner.writeConfigFile();

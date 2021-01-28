@@ -80,13 +80,13 @@ Notes
 The following options are only available via configuration file loaded by [lilconfig](https://github.com/antonk52/lilconfig).
 All CLI options are supported in the configuration file approach as well, but the options defined in the file override those provided to the CLI. Although this works, we do not recommend mixing up CLI and file configuration approaches. If you need the advanced options, just use the configuration file only.   
 
-Example `.rn-testrc.json`:
+Example `rn-test.config.js`:
 
-```json
+```js
 {
-    "platform": "ios",
-    "simulator": "iPhone 11 (14.1)",
-    "runner": "mocha"
+    platform: "ios",
+    simulator: "iPhone 11 (14.1)",
+    runner: "mocha"
 }
 ```
 
@@ -104,9 +104,9 @@ Install React Native libraries which have a native iOS and/or Android component.
 
 Example:
 
-```json
-{
-    "nativeModules": ["react-native-get-random-values"]
+```js
+module.exports = {
+    nativeModules: ["react-native-get-random-values"]
 }
 ```
 
@@ -114,16 +114,30 @@ Example:
 
 Type: `array`
 
-Paths to the patch files to apply to the test app. If not absolute, the current directory is used to resolve the path.
+Paths to the patch files to apply to the test app.
 This might be useful if you need to patch the React Native source temporarily to fix a bug or add missing functionality.
 
 Example:
 
-```json
-{
-    "patches": ["node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch"]
+```js
+module.exports = {
+    "patches": [{
+        path: require.resolve("react-native-polyfill-globals/patches/react-native+0.63.3.patch")
+    }]
 }
 ```
+
+If not absolute, the current working directory (`cwd`) is used to resolve the path. Alternatively, you can specify your own `cwd` for the each patch to apply:
+
+```js
+module.exports = {
+    "patches": [{
+        path: "node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch"
+        cwd: process.cwd()
+    }]
+}
+```
+
 ## Known issues
 
 - `metroPort` option does not work on iOS. While Metro does listen to the specified port, the app, as a client, still attempts to load the bundle from port 8081. See https://github.com/facebook/react-native/issues/9145.
