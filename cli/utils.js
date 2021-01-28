@@ -5,7 +5,7 @@ const fs = require('fs-extra');
 const globby = require('globby');
 const tempy = require('tempy');
 
-const expandGlobs = (globPatterns = [], cwd = process.cwd()) => {
+const expandGlobs = (cwd, globPatterns) => {
     const filePaths = globby.sync(globPatterns, {
         cwd,
         ignore: [
@@ -24,11 +24,12 @@ const expandGlobs = (globPatterns = [], cwd = process.cwd()) => {
     return filePaths;
 };
 
-const writeTestSuiteEntryFile = (testFilePaths, cwd = process.cwd()) => {
+const writeTestSuiteEntryFile = (cwd, testFilePaths, { preloadModulePath } = {}) => {
     const tempFile = tempy.file({
         name: 'test-suite.js',
     });
-    const testSuite = testFilePaths
+    const testSuite = [preloadModulePath, ...testFilePaths]
+        .filter(Boolean)
         .map((file) => `require('${path.resolve(cwd, file)}');`)
         .join('\n');
 
@@ -46,11 +47,11 @@ const writeTestSuiteEntryFile = (testFilePaths, cwd = process.cwd()) => {
 // test-suite-2/foo/bar/test.js
 // /test/test-suite-3/foo/bar/test.js
 // => [./test-suite-1, ./test-suite-2]
-const getCommonParentDirectories = (files, cwd = process.cwd()) => {
+const getCommonParentDirectories = (cwd, filePaths) => {
     const directories = new Set();
 
-    for (const file of files) {
-        const absolutePath = path.resolve(cwd, file);
+    for (const filePath of filePaths) {
+        const absolutePath = path.resolve(cwd, filePath);
         const relativePath = path.relative(cwd, absolutePath);
         const isCwd = relativePath.length === 0;
         const isCwdParentOfFile = !relativePath.startsWith('..');
@@ -65,7 +66,7 @@ const getCommonParentDirectories = (files, cwd = process.cwd()) => {
             return Array.from(directories);
         }
 
-        const commonParent = file.split(path.sep).shift();
+        const commonParent = filePath.split(path.sep).shift();
 
         directories.add(path.join(cwd, commonParent));
     }

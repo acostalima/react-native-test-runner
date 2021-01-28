@@ -1,6 +1,9 @@
 'use strict';
 
+const path = require('path');
+const fs = require('fs-extra');
 const execa = require('execa');
+const tempy = require('tempy');
 const { parse: parseTap } = require('tap-parser');
 
 const IOS_SIMULATOR = process.env.IOS_SIMULATOR || 'iPhone 11 (14.1)';
@@ -213,6 +216,112 @@ describe('zora', () => {
             `);
         }
     });
+
+    test('preloaded script', async () => {
+        const process = await execa('./cli/index.js', [
+            '--platform',
+            'ios',
+            '--simulator',
+            IOS_SIMULATOR,
+            '--runner',
+            'zora',
+            '--require',
+            'fixtures/zora/before.js',
+            'fixtures/zora/pass.test.js',
+        ]);
+
+        expect(process.exitCode).toBe(0);
+
+        const tapOutput = parseTap(process.stdout);
+        const tapExtraEvent = tapOutput.shift();
+        const preloadedScriptOutput = tapExtraEvent[1];
+
+        expect(preloadedScriptOutput).toEqual(expect.stringContaining('zora: before script'));
+
+        const tapCompleteEvent = tapOutput.pop();
+        const testResults = tapCompleteEvent[1];
+
+        expect(testResults.ok).toBe(true);
+        expect(testResults.pass).toBe(17);
+    });
+
+    test('load config file', async () => {
+        const process = await tempy.directory.task(async (directoryPath) => {
+            const config = {
+                platform: 'ios',
+                simulator: IOS_SIMULATOR,
+                runner: 'zora',
+            };
+            const filePath = path.join(directoryPath, 'config.json');
+
+            await fs.writeFile(filePath, JSON.stringify(config));
+
+            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/zora/pass.test.js']);
+        });
+
+        expect(process.exitCode).toBe(0);
+
+        const tapCompleteEvent = parseTap(process.stdout).pop();
+        const testResults = tapCompleteEvent[1];
+
+        expect(testResults.ok).toBe(true);
+        expect(testResults.pass).toBe(17);
+    });
+
+    test('native module', async () => {
+        const process = await tempy.directory.task(async (directoryPath) => {
+            const config = {
+                platform: 'ios',
+                simulator: IOS_SIMULATOR,
+                runner: 'zora',
+                nativeModules: [
+                    'react-native-get-random-values',
+                ],
+                require: 'fixtures/zora/crypto/before.js',
+                removeTestApp: true,
+            };
+            const filePath = path.join(directoryPath, 'config.json');
+
+            await fs.writeFile(filePath, JSON.stringify(config));
+
+            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/zora/crypto/native.test.js']);
+        });
+
+        expect(process.exitCode).toBe(0);
+
+        const tapCompleteEvent = parseTap(process.stdout).pop();
+        const testResults = tapCompleteEvent[1];
+
+        expect(testResults.ok).toBe(true);
+        expect(testResults.pass).toBe(1);
+    });
+
+    test('patch test app dependencies', async () => {
+        const process = await tempy.directory.task(async (directoryPath) => {
+            const config = {
+                platform: 'ios',
+                simulator: IOS_SIMULATOR,
+                runner: 'zora',
+                removeTestApp: true,
+                patches: [
+                    'node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch',
+                ],
+            };
+            const filePath = path.join(directoryPath, 'config.json');
+
+            await fs.writeFile(filePath, JSON.stringify(config));
+
+            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/zora/patch/test.js']);
+        });
+
+        expect(process.exitCode).toBe(0);
+
+        const tapCompleteEvent = parseTap(process.stdout).pop();
+        const testResults = tapCompleteEvent[1];
+
+        expect(testResults.ok).toBe(true);
+        expect(testResults.pass).toBe(2);
+    });
 });
 
 describe('mocha', () => {
@@ -228,6 +337,11 @@ describe('mocha', () => {
         ]);
 
         expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('test 1'));
+        expect(process.stdout).toEqual(expect.stringContaining('test 2'));
+        expect(process.stdout).toEqual(expect.stringContaining('test 3'));
+        expect(process.stdout).toEqual(expect.stringContaining('test 4'));
+        expect(process.stdout).toEqual(expect.stringContaining('4 passing'));
         // expect(process.stdout).toMatchInlineSnapshot(`
         //     "
         //     [0m[0m
@@ -243,7 +357,7 @@ describe('mocha', () => {
     });
 
     test('tests fail', async () => {
-        expect.assertions(1);
+        expect.assertions(4);
 
         const process = execa('./cli/index.js', [
             '--platform',
@@ -259,6 +373,9 @@ describe('mocha', () => {
             await process;
         } catch (error) {
             expect(error.exitCode).toBe(1);
+            expect(error.stdout).toEqual(expect.stringContaining('test 1'));
+            expect(error.stdout).toEqual(expect.stringContaining('1 failing'));
+            expect(error.stdout).toEqual(expect.stringContaining("expected 'foo' not to be a string"));
             // expect(error.stdout).toMatchInlineSnapshot(`
             //     "
             //     [0m[0m
@@ -296,5 +413,92 @@ describe('mocha', () => {
             //     "
             // `);
         }
+    });
+
+    test('preloaded script', async () => {
+        const process = await execa('./cli/index.js', [
+            '--platform',
+            'ios',
+            '--simulator',
+            IOS_SIMULATOR,
+            '--runner',
+            'mocha',
+            '--require',
+            'fixtures/mocha/before.js',
+            'fixtures/mocha/pass.test.js',
+        ]);
+
+        expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('mocha: before script'));
+    });
+
+    test('load config file', async () => {
+        const process = await tempy.directory.task(async (directoryPath) => {
+            const config = {
+                platform: 'ios',
+                simulator: IOS_SIMULATOR,
+                runner: 'mocha',
+            };
+            const filePath = path.join(directoryPath, 'config.json');
+
+            await fs.writeFile(filePath, JSON.stringify(config));
+
+            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/mocha/pass.test.js']);
+        });
+
+        expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('test 1'));
+        expect(process.stdout).toEqual(expect.stringContaining('test 2'));
+        expect(process.stdout).toEqual(expect.stringContaining('test 3'));
+        expect(process.stdout).toEqual(expect.stringContaining('test 4'));
+        expect(process.stdout).toEqual(expect.stringContaining('4 passing'));
+    });
+
+    test('native module', async () => {
+        const process = await tempy.directory.task(async (directoryPath) => {
+            const config = {
+                platform: 'ios',
+                simulator: IOS_SIMULATOR,
+                runner: 'mocha',
+                nativeModules: [
+                    'react-native-get-random-values',
+                ],
+                require: 'fixtures/mocha/crypto/before.js',
+                postRemoveTestApp: true,
+            };
+            const filePath = path.join(directoryPath, 'config.json');
+
+            await fs.writeFile(filePath, JSON.stringify(config));
+
+            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/mocha/crypto/native.test.js']);
+        });
+
+        expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('native crypto works'));
+        expect(process.stdout).toEqual(expect.stringContaining('1 passing'));
+    });
+
+    test('patch test app dependencies', async () => {
+        const process = await tempy.directory.task(async (directoryPath) => {
+            const config = {
+                platform: 'ios',
+                simulator: IOS_SIMULATOR,
+                runner: 'mocha',
+                removeTestApp: true,
+                patches: [
+                    'node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch',
+                ],
+            };
+            const filePath = path.join(directoryPath, 'config.json');
+
+            await fs.writeFile(filePath, JSON.stringify(config));
+
+            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/mocha/patch/test.js']);
+        });
+
+        expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('FormData.set patch works'));
+        expect(process.stdout).toEqual(expect.stringContaining('FileReader.readAsArrayBuffer patch works'));
+        expect(process.stdout).toEqual(expect.stringContaining('2 passing'));
     });
 });
