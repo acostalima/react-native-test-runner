@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/acostalima/react-native-test-runner/compare/v2.0.0...v2.1.0) (2021-01-28)
+
+
+### Features
+
+* find project root in mono repositories ([495ff4a](https://github.com/acostalima/react-native-test-runner/commit/495ff4aa432124de3422d077d001022fc1daabd6))
+* preload module, native modules and patches support ([3c66faf](https://github.com/acostalima/react-native-test-runner/commit/3c66faf9825551318ea2970d94f578c32631d518))
+
 ## [2.0.0](https://github.com/acostalima/react-native-test-runner/compare/v1.0.10...v2.0.0) (2021-01-25)
 
 
