@@ -44,15 +44,15 @@ Usage
     Default glob: **/test?(s)/**/?(*.)+(spec|test).js.
 
 Options
-    --plaform, -p    Platform on which to run the test suite on. One of: 'ios', 'android'.
-    --simulator, -s  iOS simulator to run the test suite on.
-    --emulator, -e   Android emulator or virtual device (AVD) to run the test suite on.
-    --metroPort, -p  Port on which Metro's server should listen to. [Default: 8081]
-    --cwd            Current directory. [Default: process.cwd()]
-    --rn             React Native version to use. [Default: 0.63.4]
-    --runner         Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
-    --require        Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeTestApp  Removes the test app directory after running the test suite. [Default: false]
+    --plaform, -p          Platform on which to run the test suite on. One of: 'ios', 'android'.
+    --simulator, -s        iOS simulator to run the test suite on.
+    --emulator, -e         Android emulator or virtual device (AVD) to run the test suite on.
+    --metroPort, -p        Port on which Metro's server should listen to. [Default: 8081]
+    --cwd                  Current directory. [Default: process.cwd()]
+    --rn                   React Native version to use. [Default: 0.63.4]
+    --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
+    --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
+    --removeNativeTestApp  Removes the natuve test app directory after running the test suite. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime

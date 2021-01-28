@@ -11,6 +11,7 @@ const path = require('path');
 const { promisify } = require('util');
 const ora = require('ora');
 const isCI = require('is-ci');
+const { findMonoRepoRoot } = require('./utils');
 
 const INTERNAL_CALLSITES_REGEX = new RegExp(
     [
@@ -25,8 +26,8 @@ const INTERNAL_CALLSITES_REGEX = new RegExp(
     ].join('|'),
 );
 
-const getTestAppDependencies = (testAppPath) => {
-    const testAppModulesPath = path.join(testAppPath, 'node_modules');
+const getTestAppDependencies = (nativeTestAppRoot) => {
+    const testAppModulesPath = path.join(nativeTestAppRoot, 'node_modules');
     const reactNativePath = path.join(testAppModulesPath, 'react-native');
 
     return {
@@ -70,7 +71,8 @@ const createResolveModule = (testRunner, testAppModulesPath) => (context, module
 };
 
 const getMetroConfig = ({
-    testAppPath,
+    cwd,
+    nativeTestAppRoot,
     port,
     testRunner,
 }) => {
@@ -86,8 +88,9 @@ const getMetroConfig = ({
             minifierPath,
             assetRegistryPath,
         },
-    } = getTestAppDependencies(testAppPath);
-    const projectRoot = path.join(__dirname, '..');
+    } = getTestAppDependencies(nativeTestAppRoot);
+    const jsAppRoot = path.join(__dirname, '..');
+    const monoRepoRoot = findMonoRepoRoot(cwd);
 
     const resolveModule = createResolveModule(testRunner, testAppModulesPath);
     const testRunnerConfigFilePath = testRunner.writeConfigFile();
@@ -147,11 +150,12 @@ const getMetroConfig = ({
                 },
             }),
         },
-        projectRoot,
+        projectRoot: jsAppRoot,
         watchFolders: [
-            process.cwd(),
-            testAppPath,
-            projectRoot,
+            cwd,
+            monoRepoRoot,
+            jsAppRoot,
+            nativeTestAppRoot,
             path.dirname(testSuiteFilePath),
             path.dirname(testRunnerConfigFilePath),
             ...testDirectoryPaths,
@@ -170,7 +174,7 @@ const runServer = async (options) => {
         reactNativeModules: {
             cliServerApi: { createDevServerMiddleware },
         },
-    } = getTestAppDependencies(options.testAppPath);
+    } = getTestAppDependencies(options.nativeTestAppRoot);
 
     const defaultConfig = await getDefaultConfig();
     const config = mergeConfig(defaultConfig, getMetroConfig(options));

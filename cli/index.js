@@ -9,7 +9,7 @@ const { lilconfigSync: loadConfigFile } = require('lilconfig');
 const runIOS = require('./run-ios');
 const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
-const createTestApp = require('./create-test-app');
+const createNativeTestApp = require('./create-native-test-app');
 const createTestRunner = require('./test-runners');
 
 const fileConfigExplorer = loadConfigFile('rn-test', { stopDir: process.cwd() });
@@ -22,15 +22,15 @@ Usage
     Default glob: **/test?(s)/**/?(*.)+(spec|test).js.
 
 Options
-    --plaform, -p    Platform on which to run the test suite on. One of: 'ios', 'android'.
-    --simulator, -s  iOS simulator to run the test suite on.
-    --emulator, -e   Android emulator or virtual device (AVD) to run the test suite on.
-    --metroPort, -p  Port on which Metro's server should listen to. [Default: 8081]
-    --cwd            Current directory. [Default: process.cwd()]
-    --rn             React Native version to use. [Default: 0.63.4]
-    --runner         Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
-    --require        Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeTestApp  Removes the test app directory after running the test suite. [Default: false]
+    --plaform, -p          Platform on which to run the test suite on. One of: 'ios', 'android'.
+    --simulator, -s        iOS simulator to run the test suite on.
+    --emulator, -e         Android emulator or virtual device (AVD) to run the test suite on.
+    --metroPort, -p        Port on which Metro's server should listen to. [Default: 8081]
+    --cwd                  Current directory. [Default: process.cwd()]
+    --rn                   React Native version to use. [Default: 0.63.4]
+    --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
+    --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
+    --removeNativeTestApp  Removes the natuve test app directory after running the test suite. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -122,10 +122,10 @@ if (!semver.valid(options.rn)) {
     process.exit(2);
 }
 
-const runNativePlatform = (options) => {
+const runNativeTestApp = (options) => {
     options = {
-        projectPath: path.join(options.testAppPath, options.platform),
         ...options,
+        nativeTestAppRoot: path.join(options.nativeTestAppRoot, options.platform),
     };
 
     switch (options.platform) {
@@ -141,21 +141,21 @@ const runNativePlatform = (options) => {
 const runTests = async (options, testFileGlobs) => {
     try {
         const testRunner = createTestRunner(options, testFileGlobs);
-        const { testAppPath, removeTestApp } = await createTestApp(options);
+        const { nativeTestAppRoot, removeNativeTestApp } = await createNativeTestApp(options);
 
         await runMetroServer({
             cwd: options.cwd,
             port: options.metroPort,
-            testAppPath,
+            nativeTestAppRoot,
             testRunner,
         });
 
-        const shutdownNativePlatform = await runNativePlatform({ ...options, testAppPath });
+        const shutdownNativePlatform = await runNativeTestApp({ ...options, nativeTestAppRoot });
 
         await testRunner.reporter.waitForTests();
         await shutdownNativePlatform();
 
-        options.removeTestApp && await removeTestApp();
+        options.removeNativeTestApp && await removeNativeTestApp();
 
         process.exit(testRunner.reporter.didPass() ? 0 : 1);
     } catch (error) {

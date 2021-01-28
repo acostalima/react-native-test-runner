@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const globby = require('globby');
 const tempy = require('tempy');
+const findUp = require('find-up');
 
 const expandGlobs = (cwd, globPatterns) => {
     const filePaths = globby.sync(globPatterns, {
@@ -74,8 +75,29 @@ const getCommonParentDirectories = (cwd, filePaths) => {
     return Array.from(directories);
 };
 
+// Typical mono repo structure:
+// .
+// ├── node_modules
+// └── packages
+//     ├── foo
+//     │   └── node_modules
+//     └── bar
+//         └── node_modules
+
+const findMonoRepoRoot = (cwd) => {
+    const rootPkgFilePath = findUp.sync('package.json', { cwd: path.resolve(cwd, '../..') });
+
+    if (!rootPkgFilePath) {
+        // Assume we're already at root
+        return cwd;
+    }
+
+    return path.dirname(rootPkgFilePath);
+};
+
 module.exports = {
     expandGlobs,
     writeTestSuiteEntryFile,
     getCommonParentDirectories,
+    findMonoRepoRoot,
 };

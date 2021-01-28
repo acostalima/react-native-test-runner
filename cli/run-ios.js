@@ -110,7 +110,7 @@ const findSimulatorByName = (querySimulatorName) => {
     };
 };
 
-const getProjectSettings = ({ projectPath }) => {
+const getProjectSettings = ({ nativeTestAppRoot }) => {
     const xcodebuildArgs = [
         '-workspace',
         'Test.xcworkspace',
@@ -125,7 +125,7 @@ const getProjectSettings = ({ projectPath }) => {
     ];
 
     const { stdout } = execa.sync('xcodebuild', xcodebuildArgs, {
-        cwd: projectPath,
+        cwd: nativeTestAppRoot,
     });
     const projectSettings = JSON.parse(stdout);
 
@@ -147,7 +147,7 @@ const getProjectSettings = ({ projectPath }) => {
     }
 };
 
-const buildApp = async ({ projectPath, simulator, metroPort }) => {
+const buildApp = async ({ nativeTestAppRoot, simulator, metroPort }) => {
     const xcodebuildArgs = [
         '-workspace',
         'Test.xcworkspace',
@@ -163,7 +163,7 @@ const buildApp = async ({ projectPath, simulator, metroPort }) => {
     const loader = ora();
 
     const buildProcess = execa('xcodebuild', xcodebuildArgs, {
-        cwd: projectPath,
+        cwd: nativeTestAppRoot,
         env: {
             ...process.env,
             RCT_NO_LAUNCH_PACKAGER: true,
@@ -296,10 +296,10 @@ const terminateApp = async ({ simulator, bundleId }) => {
     }
 };
 
-const runPodInstall = async ({ projectPath }) => {
+const runPodInstall = async ({ nativeTestAppRoot }) => {
     const loader = ora();
     const process = execa('pod', ['install'], {
-        cwd: projectPath,
+        cwd: nativeTestAppRoot,
     });
 
     loader.start('Installing Pods');
@@ -315,7 +315,7 @@ const runPodInstall = async ({ projectPath }) => {
 
 module.exports = async ({
     simulator: inputSimulator,
-    projectPath,
+    nativeTestAppRoot,
     metroPort,
 }) => {
     if (isUUID.v4(inputSimulator)) {
@@ -340,10 +340,10 @@ module.exports = async ({
         await bootHeadlessSimulator(simulator);
     }
 
-    await runPodInstall({ projectPath });
-    await buildApp({ projectPath, simulator, metroPort });
+    await runPodInstall({ nativeTestAppRoot });
+    await buildApp({ nativeTestAppRoot, simulator, metroPort });
 
-    const { binaryFilePath, bundleId } = getProjectSettings({ projectPath });
+    const { binaryFilePath, bundleId } = getProjectSettings({ nativeTestAppRoot });
 
     await installApp({ simulator, binaryFilePath, bundleId });
     await launchApp({ simulator, bundleId });

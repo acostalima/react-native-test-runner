@@ -278,7 +278,7 @@ describe('zora', () => {
                     'react-native-get-random-values',
                 ],
                 require: 'fixtures/zora/crypto/before.js',
-                removeTestApp: true,
+                removeNativeTestApp: true,
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -302,7 +302,7 @@ describe('zora', () => {
                 platform: 'ios',
                 simulator: IOS_SIMULATOR,
                 runner: 'zora',
-                removeTestApp: true,
+                removeNativeTestApp: true,
                 patches: [
                     'node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch',
                 ],
@@ -464,7 +464,7 @@ describe('mocha', () => {
                     'react-native-get-random-values',
                 ],
                 require: 'fixtures/mocha/crypto/before.js',
-                postRemoveTestApp: true,
+                removeNativeTestApp: true,
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -484,7 +484,7 @@ describe('mocha', () => {
                 platform: 'ios',
                 simulator: IOS_SIMULATOR,
                 runner: 'mocha',
-                removeTestApp: true,
+                removeNativeTestApp: true,
                 patches: [
                     'node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch',
                 ],
