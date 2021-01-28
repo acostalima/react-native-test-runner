@@ -5,11 +5,15 @@
 const path = require('path');
 const meow = require('meow');
 const semver = require('semver');
+const { lilconfigSync: loadConfigFile } = require('lilconfig');
 const runIOS = require('./run-ios');
 const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
 const createTestApp = require('./create-test-app');
 const createTestRunner = require('./test-runners');
+
+const fileConfigExplorer = loadConfigFile('rn-test', { stopDir: process.cwd() });
+const fileConfigSearchResult = fileConfigExplorer.search();
 
 const cli = meow(`
 Usage
@@ -24,10 +28,12 @@ Options
     --metroPort, -p  Port on which Metro's server should listen to. [Default: 8081]
     --cwd            Current directory. [Default: process.cwd()]
     --rn             React Native version to use. [Default: 0.63.4]
-    --runner, -r     Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
+    --runner         Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
+    --require        Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
+    --removeTestApp  Removes the test app directory after running the test suite. [Default: false]
 
 Examples
-    # Run tests on iPhone 11 simulator with iOS 14.1 runtime
+    # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
     $ rn-test --platform ios --simulator 'iPhone 11 (14.1)' 'test/**/*.test.js'
 
     # Run tests on iPhone 11 simulator with whatever iOS version is available
@@ -38,23 +44,30 @@ Examples
 
     # Run tests on Android emulator
     $ rn-test --platform android --emulator 'Pixel_API_28_AOSP' 'test/**/*.test.js'
+
+Notes
+    Do not use shell expansion for globs. Always wrap them in a string.
+    $ rn-test 'test/**' ✅
+    $ rn-test test/** ❌
+
+    Check out the README for information about advanced options.
 `,
 {
     flags: {
         platform: {
             type: 'string',
             alias: 'p',
-            isRequired: true,
+            isRequired: (flags) => !(flags.configFile || fileConfigSearchResult),
         },
         simulator: {
             type: 'string',
             alias: 's',
-            isRequired: (flags) => flags.platform === 'ios',
+            isRequired: (flags) => !(flags.configFile || fileConfigSearchResult) && flags.platform === 'ios',
         },
         emulator: {
             type: 'string',
             alias: 'e',
-            isRequired: (flags) => flags.platform === 'android',
+            isRequired: (flags) => !(flags.configFile || fileConfigSearchResult) && flags.platform === 'android',
         },
         metroPort: {
             type: 'number',
@@ -71,8 +84,19 @@ Examples
         },
         runner: {
             type: 'string',
-            alias: 'r',
             default: 'zora',
+        },
+        require: {
+            type: 'string',
+            alias: 'r',
+        },
+        configFile: {
+            type: 'string',
+            alias: 'c',
+        },
+        removeTestApp: {
+            type: 'boolean',
+            default: false,
         },
     },
 });
@@ -80,18 +104,21 @@ Examples
 const SUPPORTED_PLATFORMS = ['android', 'ios'];
 const SUPPORTED_RUNNERS = ['zora', 'mocha'];
 
-if (!SUPPORTED_RUNNERS.includes(cli.flags.runner)) {
-    console.error(`Unknown runner: ${cli.flags.runner}. Supported runners are: ${SUPPORTED_RUNNERS.join(', ')}.`);
+const fileConfig = cli.flags.configFile ? fileConfigExplorer.load(cli.flags.configFile) : fileConfigSearchResult || {};
+const options = { ...cli.flags, ...fileConfig.config };
+
+if (!SUPPORTED_RUNNERS.includes(options.runner)) {
+    console.error(`Unknown runner: ${options.runner}. Supported runners are: ${SUPPORTED_RUNNERS.join(', ')}.`);
     process.exit(2);
 }
 
-if (!SUPPORTED_PLATFORMS.includes(cli.flags.platform)) {
-    console.error(`Unknown platform: ${cli.flags.platform}. Supported platforms are: ${SUPPORTED_PLATFORMS.join(', ')}.`);
+if (!SUPPORTED_PLATFORMS.includes(options.platform)) {
+    console.error(`Unknown platform: ${options.platform}. Supported platforms are: ${SUPPORTED_PLATFORMS.join(', ')}.`);
     process.exit(2);
 }
 
-if (!semver.valid(cli.flags.rn)) {
-    console.error(`Invalid React Native version scheme: ${cli.flags.rn}. Must be compliant with Semantic Version.`);
+if (!semver.valid(options.rn)) {
+    console.error(`Invalid React Native version scheme: ${options.rn}. Must be compliant with Semantic Version.`);
     process.exit(2);
 }
 
@@ -111,22 +138,24 @@ const runNativePlatform = (options) => {
     }
 };
 
-const runTests = async () => {
+const runTests = async (options, testFileGlobs) => {
     try {
-        const testRunner = createTestRunner(cli.flags, cli.input);
-        const testAppPath = await createTestApp({ reactNativeVersion: cli.flags.rn });
+        const testRunner = createTestRunner(options, testFileGlobs);
+        const { testAppPath, removeTestApp } = await createTestApp(options);
 
         await runMetroServer({
-            cwd: cli.flags.cwd,
-            port: cli.flags.metroPort,
+            cwd: options.cwd,
+            port: options.metroPort,
             testAppPath,
             testRunner,
         });
 
-        const shutdownNativePlatform = await runNativePlatform({ ...cli.flags, testAppPath });
+        const shutdownNativePlatform = await runNativePlatform({ ...options, testAppPath });
 
         await testRunner.reporter.waitForTests();
         await shutdownNativePlatform();
+
+        options.removeTestApp && await removeTestApp();
 
         process.exit(testRunner.reporter.didPass() ? 0 : 1);
     } catch (error) {
@@ -135,4 +164,4 @@ const runTests = async () => {
     }
 };
 
-runTests();
+runTests(options, cli.input);

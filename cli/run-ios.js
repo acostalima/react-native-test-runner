@@ -296,6 +296,23 @@ const terminateApp = async ({ simulator, bundleId }) => {
     }
 };
 
+const runPodInstall = async ({ projectPath }) => {
+    const loader = ora();
+    const process = execa('pod', ['install'], {
+        cwd: projectPath,
+    });
+
+    loader.start('Installing Pods');
+
+    try {
+        await process;
+        loader.succeed();
+    } catch (error) {
+        loader.fail();
+        throw error;
+    }
+};
+
 module.exports = async ({
     simulator: inputSimulator,
     projectPath,
@@ -323,6 +340,7 @@ module.exports = async ({
         await bootHeadlessSimulator(simulator);
     }
 
+    await runPodInstall({ projectPath });
     await buildApp({ projectPath, simulator, metroPort });
 
     const { binaryFilePath, bundleId } = getProjectSettings({ projectPath });

@@ -26,7 +26,8 @@ $ npm install -D react-native-test-runner
     - [Chai](https://github.com/chaijs/chai)
 - React Native version selection.
 - iOS runtime and simulator selection.
-- Android AVD selection.
+- Android emulator (AVD) selection.
+- Support to use and test libraries with native modules.
 
 ## Limitations
 
@@ -34,7 +35,6 @@ $ npm install -D react-native-test-runner
 - No support for Windows and MacOS.
 - JavaScriptCore (JSC) engine only on both Android and iOS.
 - No TypeScript (TS) support yet.
-- Not yet possible to run tests against native modules.
 ## Usage
 
 ```
@@ -50,7 +50,9 @@ Options
     --metroPort, -p  Port on which Metro's server should listen to. [Default: 8081]
     --cwd            Current directory. [Default: process.cwd()]
     --rn             React Native version to use. [Default: 0.63.4]
-    --runner, -r     Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
+    --runner         Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
+    --require        Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
+    --removeTestApp  Removes the test app directory after running the test suite. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -64,6 +66,63 @@ Examples
 
     # Run tests on Android emulator
     $ rn-test --platform android --emulator 'Pixel_API_28_AOSP' 'test/**/*.test.js'
+
+Notes
+    Do not use shell expansion for globs. Always wrap them in a string.
+    $ rn-test 'test/**' ✅
+    $ rn-test test/** ❌
+
+    Check out the README for information about advanced options.
+```
+
+### Advanced options
+
+The following options are only available via configuration file loaded by [lilconfig](https://github.com/antonk52/lilconfig).
+All CLI options are supported in the configuration file approach as well, but the options defined in the file override those provided to the CLI. Although this works, we do not recommend mixing up CLI and file configuration approaches. If you need the advanced options, just use the configuration file only.   
+
+Example `.rn-testrc.json`:
+
+```json
+{
+    "platform": "ios",
+    "simulator": "iPhone 11 (14.1)",
+    "runner": "mocha"
+}
+```
+
+Run the CLI:
+
+```
+$ rn-test 'test/**/*.test.js'
+```
+
+#### nativeModules
+
+Type: `array`
+
+Install React Native libraries which have a native iOS and/or Android component.
+
+Example:
+
+```json
+{
+    "nativeModules": ["react-native-get-random-values"]
+}
+```
+
+#### patches
+
+Type: `array`
+
+Paths to the patch files to apply to the test app. If not absolute, the current directory is used to resolve the path.
+This might be useful if you need to patch the React Native source temporarily to fix a bug or add missing functionality.
+
+Example:
+
+```json
+{
+    "patches": ["node_modules/react-native-polyfill-globals/patches/react-native+0.63.3.patch"]
+}
 ```
 ## Known issues
 

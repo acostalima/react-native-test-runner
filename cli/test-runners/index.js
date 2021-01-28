@@ -4,15 +4,15 @@ const createSignal = require('pico-signals');
 const { expandGlobs, writeTestSuiteEntryFile, getCommonParentDirectories } = require('../utils');
 const OraBundleProgress = require('../bundle-progress/ora');
 
-const METRO_EVENTS = [
-    'bundle_build_started',
-    'bundle_transform_progressed',
-    'bundle_build_done',
-    'bundling_error',
-    'client_log',
-];
-
 const createTestReporter = (testRunner) => {
+    const METRO_EVENTS = [
+        'bundle_build_started',
+        'bundle_transform_progressed',
+        'bundle_build_done',
+        'bundling_error',
+        'client_log',
+    ];
+
     const progress = new OraBundleProgress(testRunner);
     const doneSignal = createSignal();
     let running = false;
@@ -95,10 +95,12 @@ const createTestReporter = (testRunner) => {
     });
 };
 
-module.exports = ({ cwd, runner }, testFileGlobs = []) => {
-    const testFilePaths = expandGlobs(testFileGlobs.length === 0 ? ['**/test?(s)/**/?(*.)+(spec|test).js'] : testFileGlobs, cwd);
-    const testSuiteFilePath = writeTestSuiteEntryFile(testFilePaths, cwd);
-    const testDirectoryPaths = getCommonParentDirectories(testFilePaths, cwd);
+module.exports = ({ cwd, runner, require: preloadModulePath }, testFileGlobs = []) => {
+    const DEFAULT_TEST_FILE_GLOB = '**/test?(s)/**/?(*.)+(spec|test).js';
+
+    const testFilePaths = expandGlobs(cwd, testFileGlobs.length === 0 ? DEFAULT_TEST_FILE_GLOB : testFileGlobs);
+    const testSuiteFilePath = writeTestSuiteEntryFile(cwd, testFilePaths, { preloadModulePath });
+    const testDirectoryPaths = getCommonParentDirectories(cwd, testFilePaths);
 
     const createTestRunner = require(`./${runner}`);
     const testRunner = createTestRunner();
