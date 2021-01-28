@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/acostalima/react-native-test-runner/compare/v2.1.0...v2.2.0) (2021-01-28)
+
+
+### Features
+
+* proceed on patch apply fail and allow to set cwd for patch ([e1f428c](https://github.com/acostalima/react-native-test-runner/commit/e1f428ce4166ca74b0669cb5a742d69d7edd1379))
+
 ## [2.1.0](https://github.com/acostalima/react-native-test-runner/compare/v2.0.0...v2.1.0) (2021-01-28)
 
 

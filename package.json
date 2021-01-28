@@ -1,6 +1,6 @@
 {
   "name": "react-native-test-runner",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Run tests in React Native's environment.",
   "repository": "acostalima/react-native-test-runner",
   "author": {
