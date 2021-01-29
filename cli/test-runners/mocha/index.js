@@ -5,7 +5,7 @@ const util = require('util');
 const fs = require('fs');
 const tempy = require('tempy');
 
-const writeConfigFile = (options = {}) => {
+const writeConfigModule = (options = {}) => {
     const tempFile = tempy.file({ name: 'mocha-config.js' });
 
     options = {
@@ -37,7 +37,8 @@ const transformTestOutput = (output) => {
 
 module.exports = () => ({
     toString: () => 'Mocha',
-    writeConfigFile,
-    resolveNativeRunner: () => path.join(__dirname, 'rn-runner'),
+    writeConfigModule,
+    resolveRunnerSetup: () => {},
+    resolveRunner: () => path.join(__dirname, 'rn-runner'),
     transformTestOutput,
 });

@@ -1,3 +1,3 @@
 'use strict';
 
-jest.setTimeout(30 * 60 * 1000); // 30 mins
+jest.setTimeout(15 * 60 * 1000); // 15 mins

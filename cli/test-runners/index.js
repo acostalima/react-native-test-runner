@@ -1,7 +1,7 @@
 'use strict';
 
 const createSignal = require('pico-signals');
-const { expandGlobs, writeTestSuiteEntryFile, getCommonParentDirectories } = require('../utils');
+const { expandGlobs, writeTestSuiteEntryModule, getCommonParentDirectories } = require('../utils');
 const OraBundleProgress = require('../bundle-progress/ora');
 
 const createTestReporter = (testRunner) => {
@@ -99,7 +99,7 @@ module.exports = ({ cwd, runner, require: preloadModulePath }, testFileGlobs = [
     const DEFAULT_TEST_FILE_GLOB = '**/test?(s)/**/?(*.)+(spec|test).js';
 
     const testFilePaths = expandGlobs(cwd, testFileGlobs.length === 0 ? DEFAULT_TEST_FILE_GLOB : testFileGlobs);
-    const testSuiteFilePath = writeTestSuiteEntryFile(cwd, testFilePaths, { preloadModulePath });
+    const testSuiteEntryModulePath = writeTestSuiteEntryModule(cwd, testFilePaths, { preloadModulePath });
     const testDirectoryPaths = getCommonParentDirectories(cwd, testFilePaths);
 
     const createTestRunner = require(`./${runner}`);
@@ -108,7 +108,7 @@ module.exports = ({ cwd, runner, require: preloadModulePath }, testFileGlobs = [
 
     return {
         reporter: testReporter,
-        resolveTestSuite: () => ({ testSuiteFilePath, testDirectoryPaths }),
+        resolveTestSuite: () => ({ testSuiteEntryModulePath, testDirectoryPaths }),
         ...testRunner,
     };
 };

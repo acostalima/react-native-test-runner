@@ -25,7 +25,7 @@ const expandGlobs = (cwd, globPatterns) => {
     return filePaths;
 };
 
-const writeTestSuiteEntryFile = (cwd, testFilePaths, { preloadModulePath } = {}) => {
+const writeTestSuiteEntryModule = (cwd, testFilePaths, { preloadModulePath } = {}) => {
     const tempFile = tempy.file({
         name: 'test-suite.js',
     });
@@ -97,7 +97,7 @@ const findMonoRepoRoot = (cwd) => {
 
 module.exports = {
     expandGlobs,
-    writeTestSuiteEntryFile,
+    writeTestSuiteEntryModule,
     getCommonParentDirectories,
     findMonoRepoRoot,
 };

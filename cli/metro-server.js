@@ -52,12 +52,6 @@ const getTestAppDependencies = (nativeTestAppRoot) => {
 };
 
 const createResolveModule = (testRunner, testAppModulesPath) => (context, moduleName) => {
-    const nativeTestRunnerPath = testRunner.resolveNativeModule && testRunner.resolveNativeModule(moduleName);
-
-    if (nativeTestRunnerPath) {
-        return nativeTestRunnerPath;
-    }
-
     if (moduleName === './index' && context.originModulePath.endsWith('react-native-test-runner/.')) {
         return './app/index';
     }
@@ -66,7 +60,7 @@ const createResolveModule = (testRunner, testAppModulesPath) => (context, module
         return path.join(testAppModulesPath, moduleName);
     }
 
-    return moduleName;
+    return testRunner.resolveRunnerSetup(moduleName) || moduleName;
 };
 
 const getMetroConfig = ({
@@ -92,16 +86,16 @@ const getMetroConfig = ({
     } = getTestAppDependencies(nativeTestAppRoot);
 
     const resolveModule = createResolveModule(testRunner, testAppModulesPath);
-    const testRunnerConfigFilePath = testRunner.writeConfigFile();
-    const { testSuiteFilePath, testDirectoryPaths } = testRunner.resolveTestSuite();
+    const testRunnerConfigModulePath = testRunner.writeConfigModule();
+    const { testSuiteEntryModulePath, testDirectoryPaths } = testRunner.resolveTestSuite();
 
     return {
         resolver: {
             useWatchman: !isCI,
             extraNodeModules: {
-                runner: testRunner.resolveNativeRunner(),
-                'test-suite': testSuiteFilePath,
-                'runner-config': testRunnerConfigFilePath,
+                runner: testRunner.resolveRunner(),
+                'test-suite': testSuiteEntryModulePath,
+                'runner-config': testRunnerConfigModulePath,
             },
             resolverMainFields: ['react-native', 'browser', 'main'],
             platforms: ['ios', 'android', 'native'],
@@ -155,8 +149,8 @@ const getMetroConfig = ({
             monoRepoRoot,
             jsAppRoot,
             nativeTestAppRoot,
-            path.dirname(testSuiteFilePath),
-            path.dirname(testRunnerConfigFilePath),
+            path.dirname(testSuiteEntryModulePath),
+            path.dirname(testRunnerConfigModulePath),
             ...testDirectoryPaths,
         ],
         reporter: testRunner.reporter,

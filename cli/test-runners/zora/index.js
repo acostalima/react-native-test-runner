@@ -6,7 +6,7 @@ const fs = require('fs');
 const tempy = require('tempy');
 const yn = require('yn');
 
-const writeConfigFile = (options = {}) => {
+const writeConfigModule = (options = {}) => {
     const tempFile = tempy.file({ name: 'zora-config.js' });
 
     options = {
@@ -22,9 +22,9 @@ const writeConfigFile = (options = {}) => {
 
 module.exports = () => ({
     toString: () => 'Zora',
-    writeConfigFile,
-    resolveNativeRunner: () => path.join(__dirname, 'rn-runner'),
-    resolveNativeModule: (moduleName) => moduleName === 'zora' ? path.join(__dirname, 'rn-module') : null,
+    writeConfigModule,
+    resolveRunner: () => path.join(__dirname, 'rn-runner'),
+    resolveRunnerSetup: (moduleName) => moduleName === 'zora' ? path.join(__dirname, 'harness') : undefined,
     transformTestOutput: (output) => output[0],
 });
 
