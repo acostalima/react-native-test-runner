@@ -79,7 +79,7 @@ Notes
 ### Advanced options
 
 The following options are only available via configuration file loaded by [lilconfig](https://github.com/antonk52/lilconfig).
-All CLI options are supported in the configuration file approach as well, but the options defined in the file override those provided to the CLI. Although this works, we do not recommend mixing up CLI and file configuration approaches. If you need the advanced options, just use the configuration file only.   
+All CLI options are supported in the configuration file approach as well, but the options defined in the file override those provided to the CLI.  
 
 Example `rn-test.config.js`:
 
