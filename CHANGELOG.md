@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.3.0](https://github.com/acostalima/react-native-test-runner/compare/v2.2.1...v2.3.0) (2021-01-31)
+
+
+### Features
+
+* add support to load and use process.env in the test app ([642d9b7](https://github.com/acostalima/react-native-test-runner/commit/642d9b70f030fe32909842f2e46328ad843a2035))
+
 ### [2.2.1](https://github.com/acostalima/react-native-test-runner/compare/v2.2.0...v2.2.1) (2021-01-28)
 
 
