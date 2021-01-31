@@ -1,9 +1,7 @@
 'use strict';
 
 const path = require('path');
-const fs = require('fs-extra');
 const globby = require('globby');
-const tempy = require('tempy');
 const findUp = require('find-up');
 
 const expandGlobs = (cwd, globPatterns) => {
@@ -23,20 +21,6 @@ const expandGlobs = (cwd, globPatterns) => {
     // console.log(`${filePaths.map((file) => `   - ${file}`).join('\n')}`);
 
     return filePaths;
-};
-
-const writeTestSuiteEntryModule = (cwd, testFilePaths, { preloadModulePath } = {}) => {
-    const tempFile = tempy.file({
-        name: 'test-suite.js',
-    });
-    const testSuite = [preloadModulePath, ...testFilePaths]
-        .filter(Boolean)
-        .map((file) => `require('${path.resolve(cwd, file)}');`)
-        .join('\n');
-
-    fs.writeFileSync(tempFile, testSuite);
-
-    return tempFile;
 };
 
 // Cwd: .
@@ -97,7 +81,6 @@ const findMonoRepoRoot = (cwd) => {
 
 module.exports = {
     expandGlobs,
-    writeTestSuiteEntryModule,
     getCommonParentDirectories,
     findMonoRepoRoot,
 };

@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@babel/plugin-proposal-async-generator-functions": "^7.12.12",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.3",
     "chai": "^4.2.0",
     "execa": "^4.1.0",
     "find-up": "^5.0.0",

@@ -16,7 +16,7 @@ const filterRNLogs = () => {
         const originalFn = console[level];
 
         console[level] = (...args) => {
-            if (args?.[0]?.match(filterRegExp)) {
+            if (args?.[0]?.match?.(filterRegExp)) {
                 return;
             }
             originalFn.apply(console, args);

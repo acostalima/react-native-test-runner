@@ -288,12 +288,6 @@ describe('zora', () => {
         });
 
         expect(process.exitCode).toBe(0);
-
-        const tapCompleteEvent = parseTap(process.stdout).pop();
-        const testResults = tapCompleteEvent[1];
-
-        expect(testResults.ok).toBe(true);
-        expect(testResults.pass).toBe(1);
     });
 
     test('patch test app dependencies', async () => {
@@ -315,12 +309,25 @@ describe('zora', () => {
         });
 
         expect(process.exitCode).toBe(0);
+    });
 
-        const tapCompleteEvent = parseTap(process.stdout).pop();
-        const testResults = tapCompleteEvent[1];
+    test('load environment variables', async () => {
+        const process = await execa('./cli/index.js', [
+            '--platform',
+            'ios',
+            '--simulator',
+            IOS_SIMULATOR,
+            '--runner',
+            'zora',
+            'fixtures/zora/env/test.js',
+        ], {
+            env: {
+                FOO: 'foo',
+                BAR: 'bar',
+            },
+        });
 
-        expect(testResults.ok).toBe(true);
-        expect(testResults.pass).toBe(2);
+        expect(process.exitCode).toBe(0);
     });
 });
 
@@ -500,5 +507,25 @@ describe('mocha', () => {
         expect(process.stdout).toEqual(expect.stringContaining('FormData.set patch works'));
         expect(process.stdout).toEqual(expect.stringContaining('FileReader.readAsArrayBuffer patch works'));
         expect(process.stdout).toEqual(expect.stringContaining('2 passing'));
+    });
+
+    test('load environment variables', async () => {
+        const process = await execa('./cli/index.js', [
+            '--platform',
+            'ios',
+            '--simulator',
+            IOS_SIMULATOR,
+            '--runner',
+            'mocha',
+            'fixtures/mocha/env/test.js',
+        ], {
+            env: {
+                HELLO: 'hello',
+                WORLD: 'world',
+            },
+        });
+
+        expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('environment variables loading works'));
     });
 });

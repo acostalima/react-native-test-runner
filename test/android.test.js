@@ -334,6 +334,25 @@ describe('zora', () => {
         expect(testResults.ok).toBe(true);
         expect(testResults.pass).toBe(2);
     });
+
+    test('load environment variables', async () => {
+        const process = await execa('./cli/index.js', [
+            '--platform',
+            'android',
+            '--emulator',
+            ANDROID_EMULATOR,
+            '--runner',
+            'zora',
+            'fixtures/zora/env/test.js',
+        ], {
+            env: {
+                FOO: 'foo',
+                BAR: 'bar',
+            },
+        });
+
+        expect(process.exitCode).toBe(0);
+    });
 });
 
 describe('mocha', () => {
@@ -536,5 +555,25 @@ describe('mocha', () => {
             expect.stringContaining('FileReader.readAsArrayBuffer patch works'),
         );
         expect(process.stdout).toEqual(expect.stringContaining('2 passing'));
+    });
+
+    test('load environment variables', async () => {
+        const process = await execa('./cli/index.js', [
+            '--platform',
+            'android',
+            '--emulator',
+            ANDROID_EMULATOR,
+            '--runner',
+            'mocha',
+            'fixtures/mocha/env/test.js',
+        ], {
+            env: {
+                HELLO: 'hello',
+                WORLD: 'world',
+            },
+        });
+
+        expect(process.exitCode).toBe(0);
+        expect(process.stdout).toEqual(expect.stringContaining('environment variables loading works'));
     });
 });

@@ -1,7 +1,10 @@
 'use strict';
 
+const path = require('path');
+const fs = require('fs');
+const tempy = require('tempy');
 const createSignal = require('pico-signals');
-const { expandGlobs, writeTestSuiteEntryModule, getCommonParentDirectories } = require('../utils');
+const { expandGlobs, getCommonParentDirectories } = require('../utils');
 const OraBundleProgress = require('../bundle-progress/ora');
 
 const createTestReporter = (testRunner) => {
@@ -95,7 +98,25 @@ const createTestReporter = (testRunner) => {
     });
 };
 
-module.exports = ({ cwd, runner, require: preloadModulePath }, testFileGlobs = []) => {
+const writeTestSuiteEntryModule = (cwd, testFilePaths, { preloadModulePath } = {}) => {
+    const tempFile = tempy.file({
+        name: 'test-suite.js',
+    });
+    const testSuite = [preloadModulePath, ...testFilePaths]
+        .filter(Boolean)
+        .map((file) => `require('${path.resolve(cwd, file)}');`)
+        .join('\n');
+
+    fs.writeFileSync(tempFile, testSuite);
+
+    return tempFile;
+};
+
+module.exports = ({
+    cwd,
+    runner,
+    require: preloadModulePath,
+}, testFileGlobs = []) => {
     const DEFAULT_TEST_FILE_GLOB = '**/test?(s)/**/?(*.)+(spec|test).js';
 
     const testFilePaths = expandGlobs(cwd, testFileGlobs.length === 0 ? DEFAULT_TEST_FILE_GLOB : testFileGlobs);
