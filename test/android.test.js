@@ -278,7 +278,6 @@ describe('zora', () => {
                 runner: 'zora',
                 nativeModules: ['react-native-get-random-values'],
                 require: 'fixtures/zora/crypto/before.js',
-                removeNativeTestApp: true,
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -306,14 +305,9 @@ describe('zora', () => {
                 platform: 'android',
                 emulator: ANDROID_EMULATOR,
                 runner: 'zora',
-                removeNativeTestApp: true,
-                patches: [
-                    {
-                        path: require.resolve(
-                            'react-native-polyfill-globals/patches/react-native+0.63.3.patch',
-                        ),
-                    },
-                ],
+                patches: [{
+                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
+                }],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -501,7 +495,6 @@ describe('mocha', () => {
                 runner: 'mocha',
                 nativeModules: ['react-native-get-random-values'],
                 require: 'fixtures/mocha/crypto/before.js',
-                removeNativeTestApp: true,
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -527,14 +520,9 @@ describe('mocha', () => {
                 platform: 'android',
                 emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
-                removeNativeTestApp: true,
-                patches: [
-                    {
-                        path: require.resolve(
-                            'react-native-polyfill-globals/patches/react-native+0.63.3.patch',
-                        ),
-                    },
-                ],
+                patches: [{
+                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
+                }],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
