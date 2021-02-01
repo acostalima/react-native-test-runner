@@ -53,7 +53,7 @@ Options
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeNativeTestApp  Removes the natuve test app directory after running the test suite. [Default: false]
+    --removeNativeTestApp  Removes the native test app directory after running the test suite. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
