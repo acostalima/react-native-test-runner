@@ -8,7 +8,7 @@ module.exports = compose(
         ...config,
         testPathIgnorePatterns: [
             ...config.testPathIgnorePatterns,
-            '<rootDir>/fixtures',
+            'fixtures',
         ],
         setupFilesAfterEnv: [
             ...config.setupFilesAfterEnv,
@@ -16,12 +16,16 @@ module.exports = compose(
         ],
         collectCoverageFrom: [
             '**/*.js',
-            '!node_modules/**',
-            '!app/**',
-            '!fixtures/**',
-            '!*.config.js',
-            '!*.setup.js',
-            '!coverage/**',
+        ],
+        coveragePathIgnorePatterns: [
+            'node_modules',
+            'app',
+            'fixtures',
+            'jest.config.js',
+            'jest.setup.js',
+            '.eslintrc.js',
+            'babel.config.js',
+            'coverage',
         ],
         collectCoverage: false,
     }),
