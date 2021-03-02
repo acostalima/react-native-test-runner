@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/acostalima/react-native-test-runner/compare/v2.3.0...v3.0.0) (2021-03-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* changed nativeModules option to just modules
+
+### Bug Fixes
+
+* modules installed in the test app are now resolved by metro ([b984fa9](https://github.com/acostalima/react-native-test-runner/commit/b984fa95446dd1612f7cc2fbd1f16a962f4137ea))
+
 ## [2.3.0](https://github.com/acostalima/react-native-test-runner/compare/v2.2.1...v2.3.0) (2021-01-31)
 
 
