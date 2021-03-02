@@ -270,13 +270,13 @@ describe('zora', () => {
         expect(testResults.pass).toBe(17);
     });
 
-    test('native module', async () => {
+    test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
                 platform: 'android',
                 emulator: ANDROID_EMULATOR,
                 runner: 'zora',
-                nativeModules: ['react-native-get-random-values'],
+                modules: ['react-native-get-random-values'],
                 require: 'fixtures/zora/crypto/before.js',
             };
             const filePath = path.join(directoryPath, 'config.json');
@@ -487,13 +487,13 @@ describe('mocha', () => {
         expect(process.stdout).toEqual(expect.stringContaining('4 passing'));
     });
 
-    test('native module', async () => {
+    test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
                 platform: 'android',
                 emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
-                nativeModules: ['react-native-get-random-values'],
+                modules: ['react-native-get-random-values'],
                 require: 'fixtures/mocha/crypto/before.js',
             };
             const filePath = path.join(directoryPath, 'config.json');

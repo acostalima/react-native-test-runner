@@ -96,7 +96,7 @@ const uninstallApp = async ({ packageName }) => {
     }
 };
 
-const buildApk = async ({ nativeTestAppRoot, metroPort }) => {
+const buildApk = async ({ testAppRoot, metroPort }) => {
     const gradle = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
     const buildProcess = execa(
         `${gradle}`,
@@ -104,7 +104,7 @@ const buildApk = async ({ nativeTestAppRoot, metroPort }) => {
         // https://github.com/facebook/react-native/pull/23616
         // https://github.com/react-native-community/cli/pull/421/files
         ['assembleDebug', `-PreactNativeDevServerPort=${metroPort}`],
-        { cwd: nativeTestAppRoot },
+        { cwd: testAppRoot },
     );
     const loader = ora();
 
@@ -261,9 +261,9 @@ const bootHeadlessEmulator = async ({ emulator }) => {
     ]);
 };
 
-const getProjectSettings = ({ nativeTestAppRoot }) => {
+const getProjectSettings = ({ testAppRoot }) => {
     const manifestPath = path.join(
-        nativeTestAppRoot,
+        testAppRoot,
         'app',
         'src',
         'main',
@@ -275,7 +275,7 @@ const getProjectSettings = ({ nativeTestAppRoot }) => {
     const [, packageName] = packageNameMatchResult;
 
     const buildDirectory = path.join(
-        nativeTestAppRoot,
+        testAppRoot,
         'app',
         'build',
         'outputs',
@@ -284,7 +284,7 @@ const getProjectSettings = ({ nativeTestAppRoot }) => {
     );
 
     const stringsPath = path.join(
-        nativeTestAppRoot,
+        testAppRoot,
         'app',
         'src',
         'main',
@@ -308,16 +308,16 @@ const getProjectSettings = ({ nativeTestAppRoot }) => {
     };
 };
 
-module.exports = async ({ emulator, nativeTestAppRoot, metroPort }) => {
+module.exports = async ({ emulator, testAppRoot, metroPort }) => {
     const { apkFilePath, mainActivity, packageName } = getProjectSettings({
-        nativeTestAppRoot,
+        testAppRoot,
     });
     const {
         emulatorId,
         shutdown: shutdownEmulator,
     } = await bootHeadlessEmulator({ emulator });
 
-    await buildApk({ nativeTestAppRoot, metroPort });
+    await buildApk({ testAppRoot, metroPort });
     await installApp({ emulatorId, apkFilePath });
     await launchApp({ mainActivity, packageName });
 

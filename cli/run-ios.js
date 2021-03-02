@@ -110,7 +110,7 @@ const findSimulatorByName = (querySimulatorName) => {
     };
 };
 
-const getProjectSettings = ({ nativeTestAppRoot }) => {
+const getProjectSettings = ({ testAppRoot }) => {
     const xcodebuildArgs = [
         '-workspace',
         'Test.xcworkspace',
@@ -125,7 +125,7 @@ const getProjectSettings = ({ nativeTestAppRoot }) => {
     ];
 
     const { stdout } = execa.sync('xcodebuild', xcodebuildArgs, {
-        cwd: nativeTestAppRoot,
+        cwd: testAppRoot,
     });
     const projectSettings = JSON.parse(stdout);
 
@@ -147,7 +147,7 @@ const getProjectSettings = ({ nativeTestAppRoot }) => {
     }
 };
 
-const buildApp = async ({ nativeTestAppRoot, simulator, metroPort }) => {
+const buildApp = async ({ testAppRoot, simulator, metroPort }) => {
     const xcodebuildArgs = [
         '-workspace',
         'Test.xcworkspace',
@@ -163,7 +163,7 @@ const buildApp = async ({ nativeTestAppRoot, simulator, metroPort }) => {
     const loader = ora();
 
     const buildProcess = execa('xcodebuild', xcodebuildArgs, {
-        cwd: nativeTestAppRoot,
+        cwd: testAppRoot,
         env: {
             ...process.env,
             RCT_NO_LAUNCH_PACKAGER: true,
@@ -296,10 +296,10 @@ const terminateApp = async ({ simulator, bundleId }) => {
     }
 };
 
-const runPodInstall = async ({ nativeTestAppRoot }) => {
+const runPodInstall = async ({ testAppRoot }) => {
     const loader = ora();
     const process = execa('pod', ['install'], {
-        cwd: nativeTestAppRoot,
+        cwd: testAppRoot,
     });
 
     loader.start('Installing Pods');
@@ -315,7 +315,7 @@ const runPodInstall = async ({ nativeTestAppRoot }) => {
 
 module.exports = async ({
     simulator: inputSimulator,
-    nativeTestAppRoot,
+    testAppRoot,
     metroPort,
 }) => {
     if (isUUID.v4(inputSimulator)) {
@@ -340,10 +340,10 @@ module.exports = async ({
         await bootHeadlessSimulator(simulator);
     }
 
-    await runPodInstall({ nativeTestAppRoot });
-    await buildApp({ nativeTestAppRoot, simulator, metroPort });
+    await runPodInstall({ testAppRoot });
+    await buildApp({ testAppRoot, simulator, metroPort });
 
-    const { binaryFilePath, bundleId } = getProjectSettings({ nativeTestAppRoot });
+    const { binaryFilePath, bundleId } = getProjectSettings({ testAppRoot });
 
     await installApp({ simulator, binaryFilePath, bundleId });
     await launchApp({ simulator, bundleId });

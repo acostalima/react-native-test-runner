@@ -9,7 +9,7 @@ const { lilconfigSync: loadConfigFile } = require('lilconfig');
 const runIOS = require('./run-ios');
 const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
-const createNativeTestApp = require('./create-native-test-app');
+const createTestApp = require('./create-test-app');
 const createTestRunner = require('./test-runners');
 const { findMonoRepoRoot } = require('./utils');
 
@@ -31,7 +31,7 @@ Options
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeNativeTestApp  Removes the natuve test app directory after running the test suite. [Default: false]
+    --removeTestApp        Removes the test app directory after running the test suite. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -123,10 +123,10 @@ if (!semver.valid(options.rn)) {
     process.exit(2);
 }
 
-const runNativeTestApp = (options) => {
+const runTestApp = (options) => {
     options = {
         ...options,
-        nativeTestAppRoot: path.join(options.nativeTestAppRoot, options.platform),
+        testAppRoot: path.join(options.testAppRoot, options.platform),
     };
 
     switch (options.platform) {
@@ -141,27 +141,27 @@ const runNativeTestApp = (options) => {
 
 const runTests = async (options, testFileGlobs) => {
     try {
-        const monoRepoRoot = findMonoRepoRoot(options.cwd);
+        const monoRepoRoot = await findMonoRepoRoot(options.cwd);
         const jsAppRoot = path.join(__dirname, '..');
-
         const testRunner = createTestRunner(options, testFileGlobs);
-        const { nativeTestAppRoot, removeNativeTestApp } = await createNativeTestApp(options);
+        const { testAppRoot, removeTestApp } = await createTestApp(options);
 
         await runMetroServer({
             cwd: options.cwd,
             port: options.metroPort,
-            nativeTestAppRoot,
+            testAppRoot,
             monoRepoRoot,
             jsAppRoot,
             testRunner,
+            testAppUserModules: options.modules,
         });
 
-        const shutdownNativePlatform = await runNativeTestApp({ ...options, nativeTestAppRoot });
+        const shutdownNativePlatform = await runTestApp({ ...options, testAppRoot });
 
         await testRunner.reporter.waitForTests();
         await shutdownNativePlatform();
 
-        options.removeNativeTestApp && await removeNativeTestApp();
+        options.removeTestApp && await removeTestApp();
 
         process.exit(testRunner.reporter.didPass() ? 0 : 1);
     } catch (error) {

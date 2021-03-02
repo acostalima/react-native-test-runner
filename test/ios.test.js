@@ -199,7 +199,6 @@ describe('zora', () => {
         try {
             await process;
         } catch (error) {
-            // const output = error.stdout.replace(/[ \t]*at: .*\s*\.\.\.\n/g, '');
             expect(error.exitCode).toBe(1);
             expect(error.stdout).toMatchInlineSnapshot(`
                 "TAP version 13
@@ -209,7 +208,7 @@ describe('zora', () => {
                     actual: \\"fail called\\"
                     expected: \\"fail not called\\"
                     operator: \\"fail\\"
-                    at: \\"getAssertionLocation@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false:99264:24\\"
+                    at: \\"getAssertionLocation@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false:99364:24\\"
                   ...
                 # should run 2
                 Bail out! Unhandled error."
@@ -236,7 +235,9 @@ describe('zora', () => {
         const tapExtraEvent = tapOutput.shift();
         const preloadedScriptOutput = tapExtraEvent[1];
 
-        expect(preloadedScriptOutput).toEqual(expect.stringContaining('zora: before script'));
+        expect(preloadedScriptOutput).toEqual(
+            expect.stringContaining('zora: before script'),
+        );
 
         const tapCompleteEvent = tapOutput.pop();
         const testResults = tapCompleteEvent[1];
@@ -256,7 +257,11 @@ describe('zora', () => {
 
             await fs.writeFile(filePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/zora/pass.test.js']);
+            return execa('./cli/index.js', [
+                '--configFile',
+                filePath,
+                'fixtures/zora/pass.test.js',
+            ]);
         });
 
         expect(process.exitCode).toBe(0);
@@ -268,22 +273,24 @@ describe('zora', () => {
         expect(testResults.pass).toBe(17);
     });
 
-    test('native module', async () => {
+    test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
                 platform: 'ios',
                 simulator: IOS_SIMULATOR,
                 runner: 'zora',
-                nativeModules: [
-                    'react-native-get-random-values',
-                ],
+                modules: ['react-native-get-random-values'],
                 require: 'fixtures/zora/crypto/before.js',
             };
             const filePath = path.join(directoryPath, 'config.json');
 
             await fs.writeFile(filePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/zora/crypto/native.test.js']);
+            return execa('./cli/index.js', [
+                '--configFile',
+                filePath,
+                'fixtures/zora/crypto/native.test.js',
+            ]);
         });
 
         expect(process.exitCode).toBe(0);
@@ -295,35 +302,47 @@ describe('zora', () => {
                 platform: 'ios',
                 simulator: IOS_SIMULATOR,
                 runner: 'zora',
-                patches: [{
-                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
-                }],
+                patches: [
+                    {
+                        path: require.resolve(
+                            'react-native-polyfill-globals/patches/react-native+0.63.3.patch',
+                        ),
+                    },
+                ],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
             await fs.writeFile(filePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/zora/patch/test.js']);
+            return execa('./cli/index.js', [
+                '--configFile',
+                filePath,
+                'fixtures/zora/patch/test.js',
+            ]);
         });
 
         expect(process.exitCode).toBe(0);
     });
 
     test('load environment variables', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/env/test.js',
-        ], {
-            env: {
-                FOO: 'foo',
-                BAR: 'bar',
+        const process = await execa(
+            './cli/index.js',
+            [
+                '--platform',
+                'ios',
+                '--simulator',
+                IOS_SIMULATOR,
+                '--runner',
+                'zora',
+                'fixtures/zora/env/test.js',
+            ],
+            {
+                env: {
+                    FOO: 'foo',
+                    BAR: 'bar',
+                },
             },
-        });
+        );
 
         expect(process.exitCode).toBe(0);
     });
@@ -380,7 +399,9 @@ describe('mocha', () => {
             expect(error.exitCode).toBe(1);
             expect(error.stdout).toEqual(expect.stringContaining('test 1'));
             expect(error.stdout).toEqual(expect.stringContaining('1 failing'));
-            expect(error.stdout).toEqual(expect.stringContaining("expected 'foo' not to be a string"));
+            expect(error.stdout).toEqual(
+                expect.stringContaining("expected 'foo' not to be a string"),
+            );
             // expect(error.stdout).toMatchInlineSnapshot(`
             //     "
             //     [0m[0m
@@ -434,7 +455,9 @@ describe('mocha', () => {
         ]);
 
         expect(process.exitCode).toBe(0);
-        expect(process.stdout).toEqual(expect.stringContaining('mocha: before script'));
+        expect(process.stdout).toEqual(
+            expect.stringContaining('mocha: before script'),
+        );
     });
 
     test('load config file', async () => {
@@ -448,7 +471,11 @@ describe('mocha', () => {
 
             await fs.writeFile(filePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/mocha/pass.test.js']);
+            return execa('./cli/index.js', [
+                '--configFile',
+                filePath,
+                'fixtures/mocha/pass.test.js',
+            ]);
         });
 
         expect(process.exitCode).toBe(0);
@@ -459,26 +486,30 @@ describe('mocha', () => {
         expect(process.stdout).toEqual(expect.stringContaining('4 passing'));
     });
 
-    test('native module', async () => {
+    test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
                 platform: 'ios',
                 simulator: IOS_SIMULATOR,
                 runner: 'mocha',
-                nativeModules: [
-                    'react-native-get-random-values',
-                ],
+                modules: ['react-native-get-random-values'],
                 require: 'fixtures/mocha/crypto/before.js',
             };
             const filePath = path.join(directoryPath, 'config.json');
 
             await fs.writeFile(filePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/mocha/crypto/native.test.js']);
+            return execa('./cli/index.js', [
+                '--configFile',
+                filePath,
+                'fixtures/mocha/crypto/native.test.js',
+            ]);
         });
 
         expect(process.exitCode).toBe(0);
-        expect(process.stdout).toEqual(expect.stringContaining('native crypto works'));
+        expect(process.stdout).toEqual(
+            expect.stringContaining('native crypto works'),
+        );
         expect(process.stdout).toEqual(expect.stringContaining('1 passing'));
     });
 
@@ -488,40 +519,58 @@ describe('mocha', () => {
                 platform: 'ios',
                 simulator: IOS_SIMULATOR,
                 runner: 'mocha',
-                patches: [{
-                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
-                }],
+                patches: [
+                    {
+                        path: require.resolve(
+                            'react-native-polyfill-globals/patches/react-native+0.63.3.patch',
+                        ),
+                    },
+                ],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
             await fs.writeFile(filePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', ['--configFile', filePath, 'fixtures/mocha/patch/test.js']);
+            return execa('./cli/index.js', [
+                '--configFile',
+                filePath,
+                'fixtures/mocha/patch/test.js',
+            ]);
         });
 
         expect(process.exitCode).toBe(0);
-        expect(process.stdout).toEqual(expect.stringContaining('FormData.set patch works'));
-        expect(process.stdout).toEqual(expect.stringContaining('FileReader.readAsArrayBuffer patch works'));
+        expect(process.stdout).toEqual(
+            expect.stringContaining('FormData.set patch works'),
+        );
+        expect(process.stdout).toEqual(
+            expect.stringContaining('FileReader.readAsArrayBuffer patch works'),
+        );
         expect(process.stdout).toEqual(expect.stringContaining('2 passing'));
     });
 
     test('load environment variables', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'mocha',
-            'fixtures/mocha/env/test.js',
-        ], {
-            env: {
-                HELLO: 'hello',
-                WORLD: 'world',
+        const process = await execa(
+            './cli/index.js',
+            [
+                '--platform',
+                'ios',
+                '--simulator',
+                IOS_SIMULATOR,
+                '--runner',
+                'mocha',
+                'fixtures/mocha/env/test.js',
+            ],
+            {
+                env: {
+                    HELLO: 'hello',
+                    WORLD: 'world',
+                },
             },
-        });
+        );
 
         expect(process.exitCode).toBe(0);
-        expect(process.stdout).toEqual(expect.stringContaining('environment variables loading works'));
+        expect(process.stdout).toEqual(
+            expect.stringContaining('environment variables loading works'),
+        );
     });
 });

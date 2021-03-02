@@ -68,8 +68,8 @@ const getCommonParentDirectories = (cwd, filePaths) => {
 //     └── bar
 //         └── node_modules
 
-const findMonoRepoRoot = (cwd) => {
-    const rootPkgFilePath = findUp.sync('package.json', { cwd: path.resolve(cwd, '../..') });
+const findMonoRepoRoot = async (cwd) => {
+    const rootPkgFilePath = await findUp('package.json', { cwd: path.resolve(cwd, '../..') });
 
     if (!rootPkgFilePath) {
         // Assume we're already at root

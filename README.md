@@ -53,7 +53,7 @@ Options
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeNativeTestApp  Removes the native test app directory after running the test suite. [Default: false]
+    --removeTestApp        Removes the native test app directory after running the test suite. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -97,17 +97,17 @@ Run the CLI:
 $ rn-test 'test/**/*.test.js'
 ```
 
-#### nativeModules
+#### modules
 
 Type: `array`
 
-Install React Native libraries which have a native iOS and/or Android component.
+Install packages in the test app. This is mostly useful when you are testing modules that have a native iOS and/or Android component or the code under test depends on them.
 
 Example:
 
 ```js
 module.exports = {
-    nativeModules: ["react-native-get-random-values"]
+    modules: ["react-native-get-random-values"]
 }
 ```
 
@@ -116,7 +116,7 @@ module.exports = {
 Type: `array`
 
 Paths to the patch files to apply to the test app.
-This might be useful if you need to patch the React Native source temporarily to fix a bug or add missing functionality.
+This might be useful if you need to patch the React Native's source temporarily to fix a bug or add missing functionality.
 
 Example:
 

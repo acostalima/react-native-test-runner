@@ -122,7 +122,6 @@ module.exports = ({
     const testFilePaths = expandGlobs(cwd, testFileGlobs.length === 0 ? DEFAULT_TEST_FILE_GLOB : testFileGlobs);
     const testSuiteEntryModulePath = writeTestSuiteEntryModule(cwd, testFilePaths, { preloadModulePath });
     const testDirectoryPaths = getCommonParentDirectories(cwd, testFilePaths);
-
     const createTestRunner = require(`./${runner}`);
     const testRunner = createTestRunner();
     const testReporter = createTestReporter(testRunner);

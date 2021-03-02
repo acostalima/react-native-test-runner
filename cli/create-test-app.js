@@ -12,28 +12,28 @@ const semver = require('semver');
 
 const rmdir = promisify(fs.rmdir);
 
-const installNativeModules = async (loader, nativeTestAppRoot, modules) => {
+const installModules = async (loader, testAppRoot, modules) => {
     if (modules.length === 0) {
         return;
     }
 
-    loader.start('Installing dependencies with native modules in test app');
-    await execa('npm', ['install', ...modules], { cwd: nativeTestAppRoot });
+    loader.start('Installing user modules in the test app');
+    await execa('npm', ['install', ...modules], { cwd: testAppRoot });
     loader.succeed();
 };
 
-const getNativeModulesToInstall = (appPkg, modules) => modules.filter((module) => {
+const getModulesToInstall = (appPkg, modules) => modules.filter((module) => {
     const isAlreadyInstalled = !!appPkg.dependencies[module];
 
     return !isAlreadyInstalled;
 });
 
-const applyPatches = (loader, nativeTestAppRoot, patches) => {
+const applyPatches = (loader, testAppRoot, patches) => {
     if (patches.length === 0) {
         return;
     }
 
-    patches.forEach(({ path: patchFilePath, cwd = nativeTestAppRoot }) => {
+    patches.forEach(({ path: patchFilePath, cwd = testAppRoot }) => {
         patchFilePath = path.resolve(cwd, patchFilePath);
 
         loader.start(`Applying patch ${patchFilePath}`);
@@ -53,16 +53,16 @@ const applyPatches = (loader, nativeTestAppRoot, patches) => {
 
 module.exports = async ({
     rn: reactNativeVersion = '0.63.4',
-    nativeTestAppRoot = path.join(os.homedir(), '.npm', 'rn-test-app'),
-    nativeModules = [],
+    testAppRoot = path.join(os.homedir(), '.npm', 'rn-test-app'),
+    modules = [],
     patches = [],
 } = {}) => {
     const loader = ora();
 
-    const removeNativeTestApp = async () => {
-        loader.start(`Removing test app at ${nativeTestAppRoot}`);
+    const removeTestApp = async () => {
+        loader.start(`Removing test app at ${testAppRoot}`);
         try {
-            await rmdir(nativeTestAppRoot, { recursive: true });
+            await rmdir(testAppRoot, { recursive: true });
             loader.succeed();
         } catch (error) {
             loader.fail();
@@ -73,23 +73,23 @@ module.exports = async ({
     let appPkg = null;
 
     try {
-        appPkg = await readPkg({ cwd: nativeTestAppRoot });
+        appPkg = await readPkg({ cwd: testAppRoot });
     } catch (error) {
         // Test app not installed
     }
 
     if (appPkg && semver.neq(reactNativeVersion, appPkg.dependencies['react-native'])) {
-        await removeNativeTestApp();
+        await removeTestApp();
         appPkg = null;
     }
 
     if (appPkg) {
-        const modulesToInstall = getNativeModulesToInstall(appPkg, nativeModules);
+        const modulesToInstall = getModulesToInstall(appPkg, modules);
 
-        await installNativeModules(loader, nativeTestAppRoot, modulesToInstall);
-        await applyPatches(loader, nativeTestAppRoot, patches);
+        await installModules(loader, testAppRoot, modulesToInstall);
+        await applyPatches(loader, testAppRoot, patches);
 
-        return { nativeTestAppRoot, removeNativeTestApp };
+        return { testAppRoot, removeTestApp };
     }
 
     try {
@@ -102,22 +102,22 @@ module.exports = async ({
             await execa('npm', ['install', `react-native@${reactNativeVersion}`], { cwd: reactNativeCliPkgPath });
             loader.succeed();
 
-            loader.start(`Initializing test app with React Native ${reactNativeVersion} at ${nativeTestAppRoot}`);
+            loader.start(`Initializing test app with React Native ${reactNativeVersion} at ${testAppRoot}`);
             await execa('npx', [
-                'react-native', 'init', 'Test', '--npm', '--version', reactNativeVersion, '--directory', nativeTestAppRoot, '--title', 'Test',
+                'react-native', 'init', 'Test', '--npm', '--version', reactNativeVersion, '--directory', testAppRoot, '--title', 'Test',
             ], { cwd: reactNativeCliPkgPath });
             loader.succeed();
 
-            await installNativeModules(loader, nativeTestAppRoot, nativeModules);
-            await applyPatches(loader, nativeTestAppRoot, patches);
+            await installModules(loader, testAppRoot, modules);
+            await applyPatches(loader, testAppRoot, patches);
         });
     } catch (error) {
         loader.fail();
 
-        await removeNativeTestApp();
+        await removeTestApp();
 
         throw error;
     }
 
-    return { nativeTestAppRoot, removeNativeTestApp };
+    return { testAppRoot, removeTestApp };
 };

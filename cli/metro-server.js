@@ -25,38 +25,47 @@ const INTERNAL_CALLSITES_REGEX = new RegExp(
     ].join('|'),
 );
 
-const getTestAppDependencies = (nativeTestAppRoot) => {
-    const testAppModulesPath = path.join(nativeTestAppRoot, 'node_modules');
+const getTestAppDependencies = (testAppRoot) => {
+    const testAppModulesPath = path.join(testAppRoot, 'node_modules');
     const reactNativePath = path.join(testAppModulesPath, 'react-native');
 
     return {
         metroModules: {
             core: require(path.join(testAppModulesPath, 'metro')),
             resolver: require(path.join(testAppModulesPath, 'metro-resolver')),
-            createModuleIdFactory: require(path.join(testAppModulesPath, 'metro', 'src', 'lib', 'createModuleIdFactory')),
-            asyncRequireModulePath: path.join(testAppModulesPath, 'metro-runtime', 'src', 'modules', 'asyncRequire'),
+            createModuleIdFactory: require(path.join(testAppModulesPath, 'metro/src/lib/createModuleIdFactory')),
+            asyncRequireModulePath: path.join(testAppModulesPath, 'metro-runtime/src/modules/asyncRequire'),
             babelTransformerPath: path.join(testAppModulesPath, 'metro-react-native-babel-transformer'),
-            workerPath: path.join(testAppModulesPath, 'metro', 'src', 'DeltaBundler', 'Worker'),
+            workerPath: path.join(testAppModulesPath, 'metro/src/DeltaBundler/Worker'),
             minifierPath: path.join(testAppModulesPath, 'metro-minify-uglify'),
-            assetRegistryPath: path.join(reactNativePath, 'Libraries', 'Image', 'AssetRegistry'),
+            assetRegistryPath: path.join(reactNativePath, 'Libraries/Image/AssetRegistry'),
             config: require(path.join(testAppModulesPath, 'metro-config')),
         },
         reactNativeModules: {
             corePath: reactNativePath,
-            initializeCorePath: require.resolve(path.join(reactNativePath, 'Libraries', 'Core', 'InitializeCore')),
-            cliServerApi: require(path.join(testAppModulesPath, '@react-native-community', 'cli-server-api')),
+            initializeCorePath: require.resolve(path.join(reactNativePath, 'Libraries/Core/InitializeCore')),
+            cliServerApi: require(path.join(testAppModulesPath, '@react-native-community/cli-server-api')),
             getPolyfills: require(path.join(reactNativePath, 'rn-get-polyfills')),
         },
         testAppModulesPath,
     };
 };
 
-const createResolveModule = (testRunner, testAppModulesPath) => (context, moduleName) => {
+const createModuleResolver = (testRunner, testAppModulesPath, testAppUserModules) => (context, moduleName) => {
     if (moduleName === './index' && context.originModulePath.endsWith('react-native-test-runner/.')) {
         return './app/index';
     }
 
-    if (moduleName.match(/^react$|^react-native|^@babel|^prop-types$/)) {
+    const modules = [
+        '^react$',
+        '^react-native',
+        '^@babel',
+        '^prop-types$',
+        ...testAppUserModules.map((module) => `^${module}`),
+    ].join('|');
+    const regexp = new RegExp(modules, 'i');
+
+    if (moduleName.match(regexp)) {
         return path.join(testAppModulesPath, moduleName);
     }
 
@@ -65,11 +74,12 @@ const createResolveModule = (testRunner, testAppModulesPath) => (context, module
 
 const getMetroConfig = ({
     cwd,
-    nativeTestAppRoot,
+    testAppRoot,
     monoRepoRoot,
     jsAppRoot,
     port,
     testRunner,
+    testAppUserModules = [],
 }) => {
     const {
         testAppModulesPath,
@@ -83,9 +93,9 @@ const getMetroConfig = ({
             minifierPath,
             assetRegistryPath,
         },
-    } = getTestAppDependencies(nativeTestAppRoot);
+    } = getTestAppDependencies(testAppRoot);
 
-    const resolveModule = createResolveModule(testRunner, testAppModulesPath);
+    const resolveModule = createModuleResolver(testRunner, testAppModulesPath, testAppUserModules);
     const testRunnerConfigModulePath = testRunner.writeConfigModule();
     const { testSuiteEntryModulePath, testDirectoryPaths } = testRunner.resolveTestSuite();
 
@@ -148,13 +158,12 @@ const getMetroConfig = ({
             cwd,
             monoRepoRoot,
             jsAppRoot,
-            nativeTestAppRoot,
+            testAppRoot,
             path.dirname(testSuiteEntryModulePath),
             path.dirname(testRunnerConfigModulePath),
             ...testDirectoryPaths,
         ],
         reporter: testRunner.reporter,
-        resetCache: isCI,
     };
 };
 
@@ -167,7 +176,7 @@ const runServer = async (options) => {
         reactNativeModules: {
             cliServerApi: { createDevServerMiddleware },
         },
-    } = getTestAppDependencies(options.nativeTestAppRoot);
+    } = getTestAppDependencies(options.testAppRoot);
 
     const defaultConfig = await getDefaultConfig();
     const config = mergeConfig(defaultConfig, getMetroConfig(options));
@@ -190,6 +199,7 @@ const runServer = async (options) => {
     const server = await metro.runServer(config, {
         hmrEnabled: true,
     });
+
     const closeServer = async () => {
         const loader = ora();
 
