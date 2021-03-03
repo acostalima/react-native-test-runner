@@ -38,20 +38,21 @@ const getCommonParentDirectories = (cwd, filePaths) => {
     for (const filePath of filePaths) {
         const absolutePath = path.resolve(cwd, filePath);
         const relativePath = path.relative(cwd, absolutePath);
-        const isCwd = relativePath.length === 0;
         const isCwdParentOfFile = !relativePath.startsWith('..');
 
         if (!isCwdParentOfFile) {
             continue;
         }
 
-        if (isCwd) {
+        const filePathParts = filePath.split(path.sep);
+
+        if (filePathParts.length === 1) {
             directories.add(cwd);
 
-            return Array.from(directories);
+            break;
         }
 
-        const commonParent = filePath.split(path.sep).shift();
+        const commonParent = filePathParts.shift();
 
         directories.add(path.join(cwd, commonParent));
     }
