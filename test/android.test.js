@@ -205,7 +205,7 @@ describe('zora', () => {
                     actual: \\"fail called\\"
                     expected: \\"fail not called\\"
                     operator: \\"fail\\"
-                    at: \\"getAssertionLocation@http://10.0.2.2:8081/index.bundle?platform=android&dev=true&minify=false:99610:24\\"
+                    at: \\"getAssertionLocation@http://10.0.2.2:8081/index.bundle?platform=android&dev=true&minify=false:99654:24\\"
                   ...
                 # should run 2
                 Bail out! Unhandled error."
@@ -305,9 +305,13 @@ describe('zora', () => {
                 platform: 'android',
                 emulator: ANDROID_EMULATOR,
                 runner: 'zora',
-                patches: [{
-                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
-                }],
+                patches: [
+                    {
+                        path: require.resolve(
+                            'react-native-polyfill-globals/patches/react-native+0.63.3.patch',
+                        ),
+                    },
+                ],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -330,20 +334,24 @@ describe('zora', () => {
     });
 
     test('load environment variables', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/env/test.js',
-        ], {
-            env: {
-                FOO: 'foo',
-                BAR: 'bar',
+        const process = await execa(
+            './cli/index.js',
+            [
+                '--platform',
+                'android',
+                '--emulator',
+                ANDROID_EMULATOR,
+                '--runner',
+                'zora',
+                'fixtures/zora/env/test.js',
+            ],
+            {
+                env: {
+                    FOO: 'foo',
+                    BAR: 'bar',
+                },
             },
-        });
+        );
 
         expect(process.exitCode).toBe(0);
     });
@@ -520,9 +528,13 @@ describe('mocha', () => {
                 platform: 'android',
                 emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
-                patches: [{
-                    path: require.resolve('react-native-polyfill-globals/patches/react-native+0.63.3.patch'),
-                }],
+                patches: [
+                    {
+                        path: require.resolve(
+                            'react-native-polyfill-globals/patches/react-native+0.63.3.patch',
+                        ),
+                    },
+                ],
             };
             const filePath = path.join(directoryPath, 'config.json');
 
@@ -546,22 +558,28 @@ describe('mocha', () => {
     });
 
     test('load environment variables', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'mocha',
-            'fixtures/mocha/env/test.js',
-        ], {
-            env: {
-                HELLO: 'hello',
-                WORLD: 'world',
+        const process = await execa(
+            './cli/index.js',
+            [
+                '--platform',
+                'android',
+                '--emulator',
+                ANDROID_EMULATOR,
+                '--runner',
+                'mocha',
+                'fixtures/mocha/env/test.js',
+            ],
+            {
+                env: {
+                    HELLO: 'hello',
+                    WORLD: 'world',
+                },
             },
-        });
+        );
 
         expect(process.exitCode).toBe(0);
-        expect(process.stdout).toEqual(expect.stringContaining('environment variables loading works'));
+        expect(process.stdout).toEqual(
+            expect.stringContaining('environment variables loading works'),
+        );
     });
 });
