@@ -2,23 +2,15 @@
 
 const path = require('path');
 const fs = require('fs-extra');
-const execa = require('execa');
 const tempy = require('tempy');
 const { parse: parseTap } = require('tap-parser');
-
-const ANDROID_EMULATOR = process.env.ANDROID_EMULATOR || 'Pixel_API_28_AOSP';
+const { createAndroidCli } = require('./utils/create-cli');
 
 describe('zora', () => {
     test('tests pass', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/pass.test.js',
-        ]);
+        const process = await createAndroidCli('fixtures/zora/pass.test.js')
+            .runner('zora')
+            .run();
 
         expect(process.exitCode).toBe(0);
 
@@ -32,15 +24,9 @@ describe('zora', () => {
     test('tests fail', async () => {
         expect.assertions(3);
 
-        const process = execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/fail.test.js',
-        ]);
+        const process = createAndroidCli('fixtures/zora/fail.test.js')
+            .runner('zora')
+            .run();
 
         try {
             await process;
@@ -56,15 +42,9 @@ describe('zora', () => {
     });
 
     test('glob', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/glob/**/?(*.)+(spec|test).js',
-        ]);
+        const process = await createAndroidCli('fixtures/zora/glob/**/?(*.)+(spec|test).js')
+            .runner('zora')
+            .run();
 
         expect(process.stdout).toMatchInlineSnapshot(`
             "TAP version 13
@@ -86,23 +66,13 @@ describe('zora', () => {
     });
 
     test('indent nested tests', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'android',
-                '--emulator',
-                ANDROID_EMULATOR,
-                '--runner',
-                'zora',
-                'fixtures/zora/nested.test.js',
-            ],
-            {
-                env: {
-                    INDENT: true,
-                },
+        const process = await createAndroidCli('fixtures/zora/nested.test.js', {
+            env: {
+                INDENT: true,
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         const output = process.stdout.toString().replace(/[0-9]+ms/g, 'time');
 
@@ -137,21 +107,13 @@ describe('zora', () => {
     });
 
     test('run only tests if RUN_ONLY is set', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'android',
-                '--emulator',
-                ANDROID_EMULATOR,
-                'fixtures/zora/only.test.js',
-            ],
-            {
-                env: {
-                    RUN_ONLY: true,
-                },
+        const process = await createAndroidCli('fixtures/zora/only.test.js', {
+            env: {
+                RUN_ONLY: true,
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         expect(process.stdout).toMatchInlineSnapshot(`
             "TAP version 13
@@ -176,28 +138,21 @@ describe('zora', () => {
     test('bail out if only test runs and RUN_ONLY is not set', async () => {
         expect.assertions(2);
 
-        const process = execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'android',
-                '--emulator',
-                ANDROID_EMULATOR,
-                'fixtures/zora/only.test.js',
-            ],
-            {
-                env: {
-                    RUN_ONLY: false,
-                },
+        const process = createAndroidCli('fixtures/zora/only.test.js', {
+            env: {
+                RUN_ONLY: false,
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         try {
             await process;
         } catch (error) {
-            // const output = error.stdout.replace(/[ \t]*at: .*\s*\.\.\.\n/g, '');
+            const output = error.stdout.replace(/[ \t]*at: .*\s*\.\.\.\n/g, '');
+
             expect(error.exitCode).toBe(1);
-            expect(error.stdout).toMatchInlineSnapshot(`
+            expect(output).toMatchInlineSnapshot(`
                 "TAP version 13
                 # should not run 2
                 not ok 1 - I should not run 2
@@ -205,8 +160,6 @@ describe('zora', () => {
                     actual: \\"fail called\\"
                     expected: \\"fail not called\\"
                     operator: \\"fail\\"
-                    at: \\"getAssertionLocation@http://10.0.2.2:8081/index.bundle?platform=android&dev=true&minify=false:99654:24\\"
-                  ...
                 # should run 2
                 Bail out! Unhandled error."
             `);
@@ -214,17 +167,10 @@ describe('zora', () => {
     });
 
     test('preloaded script', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'zora',
-            '--require',
-            'fixtures/zora/before.js',
-            'fixtures/zora/pass.test.js',
-        ]);
+        const process = await createAndroidCli('fixtures/zora/pass.test.js')
+            .runner('zora')
+            .require('fixtures/zora/before.js')
+            .run();
 
         expect(process.exitCode).toBe(0);
 
@@ -246,19 +192,15 @@ describe('zora', () => {
     test('load config file', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'android',
-                emulator: ANDROID_EMULATOR,
                 runner: 'zora',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/zora/pass.test.js',
-            ]);
+            return createAndroidCli('fixtures/zora/pass.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -273,21 +215,17 @@ describe('zora', () => {
     test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'android',
-                emulator: ANDROID_EMULATOR,
                 runner: 'zora',
                 modules: ['react-native-get-random-values'],
                 require: 'fixtures/zora/crypto/before.js',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/zora/crypto/native.test.js',
-            ]);
+            return createAndroidCli('fixtures/zora/crypto/native.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -302,8 +240,6 @@ describe('zora', () => {
     test('patch test app dependencies', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'android',
-                emulator: ANDROID_EMULATOR,
                 runner: 'zora',
                 patches: [
                     {
@@ -313,15 +249,13 @@ describe('zora', () => {
                     },
                 ],
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/zora/patch/test.js',
-            ]);
+            return createAndroidCli('fixtures/zora/patch/test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -334,24 +268,14 @@ describe('zora', () => {
     });
 
     test('load environment variables', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'android',
-                '--emulator',
-                ANDROID_EMULATOR,
-                '--runner',
-                'zora',
-                'fixtures/zora/env/test.js',
-            ],
-            {
-                env: {
-                    FOO: 'foo',
-                    BAR: 'bar',
-                },
+        const process = await createAndroidCli('fixtures/zora/env/test.js', {
+            env: {
+                FOO: 'foo',
+                BAR: 'bar',
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         expect(process.exitCode).toBe(0);
     });
@@ -359,15 +283,9 @@ describe('zora', () => {
 
 describe('mocha', () => {
     test('tests pass', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'mocha',
-            'fixtures/mocha/pass.test.js',
-        ]);
+        const process = await createAndroidCli('fixtures/mocha/pass.test.js')
+            .runner('mocha')
+            .run();
 
         expect(process.exitCode).toBe(0);
         expect(process.stdout).toEqual(expect.stringContaining('test 1'));
@@ -392,15 +310,9 @@ describe('mocha', () => {
     test('tests fail', async () => {
         expect.assertions(4);
 
-        const process = execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'mocha',
-            'fixtures/mocha/fail.test.js',
-        ]);
+        const process = createAndroidCli('fixtures/mocha/fail.test.js')
+            .runner('mocha')
+            .run();
 
         try {
             await process;
@@ -451,17 +363,10 @@ describe('mocha', () => {
     });
 
     test('preloaded script', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'android',
-            '--emulator',
-            ANDROID_EMULATOR,
-            '--runner',
-            'mocha',
-            '--require',
-            'fixtures/mocha/before.js',
-            'fixtures/mocha/pass.test.js',
-        ]);
+        const process = await createAndroidCli('fixtures/mocha/pass.test.js')
+            .runner('mocha')
+            .require('fixtures/mocha/before.js')
+            .run();
 
         expect(process.exitCode).toBe(0);
         expect(process.stdout).toEqual(
@@ -472,19 +377,15 @@ describe('mocha', () => {
     test('load config file', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'android',
-                emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/mocha/pass.test.js',
-            ]);
+            return createAndroidCli('fixtures/mocha/pass.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -498,21 +399,17 @@ describe('mocha', () => {
     test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'android',
-                emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
                 modules: ['react-native-get-random-values'],
                 require: 'fixtures/mocha/crypto/before.js',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/mocha/crypto/native.test.js',
-            ]);
+            return createAndroidCli('fixtures/mocha/crypto/native.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -525,8 +422,6 @@ describe('mocha', () => {
     test('patch test app dependencies', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'android',
-                emulator: ANDROID_EMULATOR,
                 runner: 'mocha',
                 patches: [
                     {
@@ -536,15 +431,13 @@ describe('mocha', () => {
                     },
                 ],
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/mocha/patch/test.js',
-            ]);
+            return createAndroidCli('fixtures/mocha/patch/test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -558,24 +451,14 @@ describe('mocha', () => {
     });
 
     test('load environment variables', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'android',
-                '--emulator',
-                ANDROID_EMULATOR,
-                '--runner',
-                'mocha',
-                'fixtures/mocha/env/test.js',
-            ],
-            {
-                env: {
-                    HELLO: 'hello',
-                    WORLD: 'world',
-                },
+        const process = await createAndroidCli('fixtures/mocha/env/test.js', {
+            env: {
+                HELLO: 'hello',
+                WORLD: 'world',
             },
-        );
+        })
+            .runner('mocha')
+            .run();
 
         expect(process.exitCode).toBe(0);
         expect(process.stdout).toEqual(

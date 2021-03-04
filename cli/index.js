@@ -3,9 +3,10 @@
 'use strict';
 
 const path = require('path');
+const os = require('os');
 const meow = require('meow');
 const semver = require('semver');
-const { lilconfigSync: loadConfigFile } = require('lilconfig');
+const { lilconfigSync: loadConfig } = require('lilconfig');
 const runIOS = require('./run-ios');
 const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
@@ -13,7 +14,7 @@ const createTestApp = require('./create-test-app');
 const createTestRunner = require('./test-runners');
 const { findMonoRepoRoot } = require('./utils');
 
-const fileConfigExplorer = loadConfigFile('rn-test', { stopDir: process.cwd() });
+const fileConfigExplorer = loadConfig('rn-test', { stopDir: process.cwd() });
 const fileConfigSearchResult = fileConfigExplorer.search();
 
 const cli = meow(`
@@ -26,12 +27,12 @@ Options
     --plaform, -p          Platform on which to run the test suite on. One of: 'ios', 'android'.
     --simulator, -s        iOS simulator to run the test suite on.
     --emulator, -e         Android emulator or virtual device (AVD) to run the test suite on.
-    --metroPort, -p        Port on which Metro's server should listen to. [Default: 8081]
+    --metro-port, -p        Port on which Metro's server should listen to. [Default: 8081]
     --cwd                  Current directory. [Default: process.cwd()]
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeTestApp        Removes the test app directory after running the test suite. [Default: false]
+    --app                  Path to the React Native test app root. [Default: ~/.rn-test-app]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -58,17 +59,17 @@ Notes
         platform: {
             type: 'string',
             alias: 'p',
-            isRequired: (flags) => !(flags.configFile || fileConfigSearchResult),
+            isRequired: (flags) => !(flags.config || fileConfigSearchResult),
         },
         simulator: {
             type: 'string',
             alias: 's',
-            isRequired: (flags) => !(flags.configFile || fileConfigSearchResult) && flags.platform === 'ios',
+            isRequired: (flags) => !(flags.config || fileConfigSearchResult) && flags.platform === 'ios',
         },
         emulator: {
             type: 'string',
             alias: 'e',
-            isRequired: (flags) => !(flags.configFile || fileConfigSearchResult) && flags.platform === 'android',
+            isRequired: (flags) => !(flags.config || fileConfigSearchResult) && flags.platform === 'android',
         },
         metroPort: {
             type: 'number',
@@ -91,13 +92,13 @@ Notes
             type: 'string',
             alias: 'r',
         },
-        configFile: {
+        config: {
             type: 'string',
             alias: 'c',
         },
-        removeTestApp: {
-            type: 'boolean',
-            default: false,
+        app: {
+            type: 'string',
+            default: path.join(os.homedir(), '.rn-test-app'),
         },
     },
 });
@@ -105,7 +106,7 @@ Notes
 const SUPPORTED_PLATFORMS = ['android', 'ios'];
 const SUPPORTED_RUNNERS = ['zora', 'mocha'];
 
-const fileConfig = cli.flags.configFile ? fileConfigExplorer.load(cli.flags.configFile) : fileConfigSearchResult || {};
+const fileConfig = cli.flags.config ? fileConfigExplorer.load(cli.flags.config) : fileConfigSearchResult || {};
 const options = { ...cli.flags, ...fileConfig.config };
 
 if (!SUPPORTED_RUNNERS.includes(options.runner)) {
@@ -126,7 +127,7 @@ if (!semver.valid(options.rn)) {
 const runTestApp = (options) => {
     options = {
         ...options,
-        testAppRoot: path.join(options.testAppRoot, options.platform),
+        testAppRoot: path.join(options.app, options.platform),
     };
 
     switch (options.platform) {
@@ -144,24 +145,23 @@ const runTests = async (options, testFileGlobs) => {
         const monoRepoRoot = await findMonoRepoRoot(options.cwd);
         const jsAppRoot = path.join(__dirname, '..');
         const testRunner = createTestRunner(options, testFileGlobs);
-        const { testAppRoot, removeTestApp } = await createTestApp(options);
+
+        await createTestApp(options);
 
         await runMetroServer({
             cwd: options.cwd,
             port: options.metroPort,
-            testAppRoot,
+            testAppRoot: options.app,
             monoRepoRoot,
             jsAppRoot,
             testRunner,
             testAppUserModules: options.modules,
         });
 
-        const shutdownNativePlatform = await runTestApp({ ...options, testAppRoot });
+        const shutdownNativePlatform = await runTestApp(options);
 
         await testRunner.reporter.waitForTests();
         await shutdownNativePlatform();
-
-        options.removeTestApp && await removeTestApp();
 
         process.exit(testRunner.reporter.didPass() ? 0 : 1);
     } catch (error) {

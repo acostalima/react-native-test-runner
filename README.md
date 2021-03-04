@@ -1,13 +1,11 @@
 # react-native-test-runner
 
-[![npm version][npm-image]][npm-url] [![ci][github-ci-image]][github-ci-url] [![codecov][codecov-image]][codecov-url]
+[![npm version][npm-image]][npm-url] [![ci][github-ci-image]][github-ci-url]
 
 [npm-url]:https://www.npmjs.com/package/react-native-test-runner
 [npm-image]:https://img.shields.io/npm/v/react-native-test-runner.svg
 [github-ci-url]:https://github.com/acostalima/react-native-test-runner/actions
 [github-ci-image]:https://github.com/acostalima/react-native-test-runner/workflows/Node%20CI/badge.svg
-[codecov-url]:https://codecov.io/gh/acostalima/react-native-test-runner?branch=master
-[codecov-image]:https://codecov.io/gh/acostalima/react-native-test-runner/badge.svg?branch=master
 
 > Run tests in React Native's environment.
 
@@ -32,9 +30,9 @@ $ npm install -D react-native-test-runner
 ## Limitations
 
 - No coverage output.
-- No support for Windows and macOS.
+- No support for [React Native Windows](https://github.com/microsoft/react-native-windows) and [React Native macOS](https://github.com/microsoft/react-native-macos).
 - JavaScriptCore (JSC) engine only on both Android and iOS.
-- No TypeScript (TS) support yet.
+- No TypeScript (TS) support.
 
 ## Usage
 
@@ -48,12 +46,12 @@ Options
     --plaform, -p          Platform on which to run the test suite on. One of: 'ios', 'android'.
     --simulator, -s        iOS simulator to run the test suite on.
     --emulator, -e         Android emulator or virtual device (AVD) to run the test suite on.
-    --metroPort, -p        Port on which Metro's server should listen to. [Default: 8081]
+    --metro-port, -p        Port on which Metro's server should listen to. [Default: 8081]
     --cwd                  Current directory. [Default: process.cwd()]
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
-    --removeTestApp        Removes the native test app directory after running the test suite. [Default: false]
+    --app                  Path to the React Native test app root. [Default: ~/.rn-test-app]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -101,7 +99,7 @@ $ rn-test 'test/**/*.test.js'
 
 Type: `array`
 
-Install packages in the test app. This is mostly useful when you are testing modules that have a native iOS and/or Android component or the code under test depends on them.
+Install packages in the test app. This is mostly useful when you are using modules that have a native iOS and/or Android component or the code under test depends on them.
 
 Example:
 
@@ -139,9 +137,52 @@ module.exports = {
 }
 ```
 
+## Tests
+
+This section is about how you can run the test suite locally.
+
+### Environment setup
+
+The test suite can be parameterized with the following environment variables:
+
+| Variable | CLI option | Default |
+|----------|------------|---------|
+| `REACT_NATIVE_VERSION` | `rn` | CLI default |
+| `REACT_NATIVE_TEST_APP` | `app` | CLI default |
+| `IOS_SIMULATOR` | `simulator` | `'iPhone (14.1)'` |
+| `ANDROID_SIMULATOR`| `emulator` | `'Pixel_API_28_AOSP'` |
+
+Both `IOS_SIMULATOR` and `ANDROID_EMULATOR` must be set according to what iOS simulators and Android emulators you have installed in your system.
+
+You can find the list of iOS simulators available in your system by running the following command:
+
+```
+$ xcrun xctrace list devices
+```
+
+For the list of Android emulators, run:
+
+```
+$ emulator -list-avds
+```
+
+### Run on iOS
+
+⚠️ A machine with macOS operating system is required!
+
+```
+$ npm t -- ios
+```
+
+### Run on Android
+
+```
+$ npm t -- android
+```
+
 ## Known issues
 
-- `metroPort` option does not work on iOS. While Metro does listen to the specified port, the app, as a client, still attempts to load the bundle from port 8081. See https://github.com/facebook/react-native/issues/9145.
+- While `metroPort` works in [Android](https://github.com/facebook/react-native/pull/23616), it doesn't on [iOS](https://github.com/facebook/react-native/issues/9145). Metro does listen to the specified port but, the app, as a client, still attempts to load the bundle from port 8081.
 ## License
 
 MIT © [André Costa Lima](https://github.com/acostalima)

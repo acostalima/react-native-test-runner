@@ -1,5 +1,4 @@
-// Inspired by and adapted from:
-// - https://github.com/react-native-community/cli/blob/master/packages/platform-ios/src/commands/runIOS
+// Inspired by and adapted from: https://github.com/react-native-community/cli/blob/master/packages/platform-ios/src/commands/runIOS
 
 'use strict';
 
