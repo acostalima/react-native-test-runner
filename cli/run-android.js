@@ -1,5 +1,4 @@
-// Inspired by and adapted from:
-// - https://github.com/react-native-community/cli/tree/master/packages/platform-android/src/commands/runAndroid
+// Inspired by and adapted from: https://github.com/react-native-community/cli/tree/master/packages/platform-android/src/commands/runAndroid
 
 'use strict';
 

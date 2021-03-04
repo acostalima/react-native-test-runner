@@ -1,7 +1,6 @@
 'use strict';
 
 const path = require('path');
-const os = require('os');
 const { promisify } = require('util');
 const fs = require('fs-extra');
 const tempy = require('tempy');
@@ -53,7 +52,7 @@ const applyPatches = (loader, testAppRoot, patches) => {
 
 module.exports = async ({
     rn: reactNativeVersion = '0.63.4',
-    testAppRoot = path.join(os.homedir(), '.npm', 'rn-test-app'),
+    app: testAppRoot,
     modules = [],
     patches = [],
 } = {}) => {
@@ -89,12 +88,12 @@ module.exports = async ({
         await installModules(loader, testAppRoot, modulesToInstall);
         await applyPatches(loader, testAppRoot, patches);
 
-        return { testAppRoot, removeTestApp };
+        return { removeTestApp };
     }
 
     try {
         await tempy.directory.task(async (reactNativeCliPkgPath) => {
-            loader.start(`Initializing npm package for React Native CLI at ${reactNativeCliPkgPath}`);
+            loader.start(`Initializing React Native CLI at ${reactNativeCliPkgPath}`);
             await execa('npm', ['init', '-y'], { cwd: reactNativeCliPkgPath });
             loader.succeed();
 
@@ -119,5 +118,5 @@ module.exports = async ({
         throw error;
     }
 
-    return { testAppRoot, removeTestApp };
+    return { removeTestApp };
 };

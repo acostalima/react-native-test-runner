@@ -2,23 +2,15 @@
 
 const path = require('path');
 const fs = require('fs-extra');
-const execa = require('execa');
 const tempy = require('tempy');
 const { parse: parseTap } = require('tap-parser');
-
-const IOS_SIMULATOR = process.env.IOS_SIMULATOR || 'iPhone 11 (14.1)';
+const { createIOSCli } = require('./utils/create-cli');
 
 describe('zora', () => {
     test('tests pass', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/pass.test.js',
-        ]);
+        const process = await createIOSCli('fixtures/zora/pass.test.js')
+            .runner('zora')
+            .run();
 
         expect(process.exitCode).toBe(0);
 
@@ -32,15 +24,9 @@ describe('zora', () => {
     test('tests fail', async () => {
         expect.assertions(3);
 
-        const process = execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/fail.test.js',
-        ]);
+        const process = createIOSCli('fixtures/zora/fail.test.js')
+            .runner('zora')
+            .run();
 
         try {
             await process;
@@ -56,15 +42,9 @@ describe('zora', () => {
     });
 
     test('glob', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'zora',
-            'fixtures/zora/glob/**/?(*.)+(spec|test).js',
-        ]);
+        const process = await createIOSCli('fixtures/zora/glob/**/?(*.)+(spec|test).js')
+            .runner('zora')
+            .run();
 
         expect(process.stdout).toMatchInlineSnapshot(`
             "TAP version 13
@@ -86,23 +66,13 @@ describe('zora', () => {
     });
 
     test('indent nested tests', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'ios',
-                '--simulator',
-                IOS_SIMULATOR,
-                '--runner',
-                'zora',
-                'fixtures/zora/nested.test.js',
-            ],
-            {
-                env: {
-                    INDENT: true,
-                },
+        const process = await createIOSCli('fixtures/zora/nested.test.js', {
+            env: {
+                INDENT: true,
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         const output = process.stdout.toString().replace(/[0-9]+ms/g, 'time');
 
@@ -137,23 +107,13 @@ describe('zora', () => {
     });
 
     test('run only tests if RUN_ONLY is set', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'ios',
-                '--simulator',
-                IOS_SIMULATOR,
-                '--runner',
-                'zora',
-                'fixtures/zora/only.test.js',
-            ],
-            {
-                env: {
-                    RUN_ONLY: true,
-                },
+        const process = await createIOSCli('fixtures/zora/only.test.js', {
+            env: {
+                RUN_ONLY: true,
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         expect(process.stdout).toMatchInlineSnapshot(`
             "TAP version 13
@@ -178,29 +138,21 @@ describe('zora', () => {
     test('bail out if only test runs and RUN_ONLY is not set', async () => {
         expect.assertions(2);
 
-        const process = execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'ios',
-                '--simulator',
-                IOS_SIMULATOR,
-                '--runner',
-                'zora',
-                'fixtures/zora/only.test.js',
-            ],
-            {
-                env: {
-                    RUN_ONLY: false,
-                },
+        const process = createIOSCli('fixtures/zora/only.test.js', {
+            env: {
+                RUN_ONLY: false,
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         try {
             await process;
         } catch (error) {
+            const output = error.stdout.replace(/[ \t]*at: .*\s*\.\.\.\n/g, '');
+
             expect(error.exitCode).toBe(1);
-            expect(error.stdout).toMatchInlineSnapshot(`
+            expect(output).toMatchInlineSnapshot(`
                 "TAP version 13
                 # should not run 2
                 not ok 1 - I should not run 2
@@ -208,8 +160,6 @@ describe('zora', () => {
                     actual: \\"fail called\\"
                     expected: \\"fail not called\\"
                     operator: \\"fail\\"
-                    at: \\"getAssertionLocation@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false:99364:24\\"
-                  ...
                 # should run 2
                 Bail out! Unhandled error."
             `);
@@ -217,17 +167,10 @@ describe('zora', () => {
     });
 
     test('preloaded script', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'zora',
-            '--require',
-            'fixtures/zora/before.js',
-            'fixtures/zora/pass.test.js',
-        ]);
+        const process = await createIOSCli('fixtures/zora/pass.test.js')
+            .runner('zora')
+            .require('fixtures/zora/before.js')
+            .run();
 
         expect(process.exitCode).toBe(0);
 
@@ -249,19 +192,15 @@ describe('zora', () => {
     test('load config file', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'ios',
-                simulator: IOS_SIMULATOR,
                 runner: 'zora',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/zora/pass.test.js',
-            ]);
+            return createIOSCli('fixtures/zora/pass.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -276,31 +215,33 @@ describe('zora', () => {
     test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'ios',
-                simulator: IOS_SIMULATOR,
                 runner: 'zora',
                 modules: ['react-native-get-random-values'],
                 require: 'fixtures/zora/crypto/before.js',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/zora/crypto/native.test.js',
-            ]);
+            return createIOSCli('fixtures/zora/crypto/native.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
+
+        const tapCompleteEvent = parseTap(process.stdout).pop();
+        const testResults = tapCompleteEvent[1];
+
+        expect(testResults.ok).toBe(true);
+        expect(testResults.pass).toBe(1);
     });
 
-    test('patch test app dependencies', async () => {
+    // iOS build fails in GitHub Workflow on React Native 0.63.4 in the latest macOS and Xcode
+    // Patch file is not compatible with React Native 0.62.0
+    test.skip('patch test app dependencies', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'ios',
-                simulator: IOS_SIMULATOR,
                 runner: 'zora',
                 patches: [
                     {
@@ -310,39 +251,27 @@ describe('zora', () => {
                     },
                 ],
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/zora/patch/test.js',
-            ]);
+            return createIOSCli('fixtures/zora/patch/test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
     });
 
     test('load environment variables', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'ios',
-                '--simulator',
-                IOS_SIMULATOR,
-                '--runner',
-                'zora',
-                'fixtures/zora/env/test.js',
-            ],
-            {
-                env: {
-                    FOO: 'foo',
-                    BAR: 'bar',
-                },
+        const process = await createIOSCli('fixtures/zora/env/test.js', {
+            env: {
+                FOO: 'foo',
+                BAR: 'bar',
             },
-        );
+        })
+            .runner('zora')
+            .run();
 
         expect(process.exitCode).toBe(0);
     });
@@ -350,15 +279,9 @@ describe('zora', () => {
 
 describe('mocha', () => {
     test('tests pass', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'mocha',
-            'fixtures/mocha/pass.test.js',
-        ]);
+        const process = await createIOSCli('fixtures/mocha/pass.test.js')
+            .runner('mocha')
+            .run();
 
         expect(process.exitCode).toBe(0);
         expect(process.stdout).toEqual(expect.stringContaining('test 1'));
@@ -383,15 +306,9 @@ describe('mocha', () => {
     test('tests fail', async () => {
         expect.assertions(4);
 
-        const process = execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'mocha',
-            'fixtures/mocha/fail.test.js',
-        ]);
+        const process = createIOSCli('fixtures/mocha/fail.test.js')
+            .runner('mocha')
+            .run();
 
         try {
             await process;
@@ -442,17 +359,10 @@ describe('mocha', () => {
     });
 
     test('preloaded script', async () => {
-        const process = await execa('./cli/index.js', [
-            '--platform',
-            'ios',
-            '--simulator',
-            IOS_SIMULATOR,
-            '--runner',
-            'mocha',
-            '--require',
-            'fixtures/mocha/before.js',
-            'fixtures/mocha/pass.test.js',
-        ]);
+        const process = await createIOSCli('fixtures/mocha/pass.test.js')
+            .runner('mocha')
+            .require('fixtures/mocha/before.js')
+            .run();
 
         expect(process.exitCode).toBe(0);
         expect(process.stdout).toEqual(
@@ -463,19 +373,15 @@ describe('mocha', () => {
     test('load config file', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'ios',
-                simulator: IOS_SIMULATOR,
                 runner: 'mocha',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/mocha/pass.test.js',
-            ]);
+            return createIOSCli('fixtures/mocha/pass.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -489,21 +395,17 @@ describe('mocha', () => {
     test('user modules', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'ios',
-                simulator: IOS_SIMULATOR,
                 runner: 'mocha',
                 modules: ['react-native-get-random-values'],
                 require: 'fixtures/mocha/crypto/before.js',
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/mocha/crypto/native.test.js',
-            ]);
+            return createIOSCli('fixtures/mocha/crypto/native.test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -513,11 +415,11 @@ describe('mocha', () => {
         expect(process.stdout).toEqual(expect.stringContaining('1 passing'));
     });
 
-    test('patch test app dependencies', async () => {
+    // iOS build fails in GitHub Workflow on React Native 0.63.4 in the latest macOS and Xcode
+    // Patch file is not compatible with React Native 0.62.0
+    test.skip('patch test app dependencies', async () => {
         const process = await tempy.directory.task(async (directoryPath) => {
             const config = {
-                platform: 'ios',
-                simulator: IOS_SIMULATOR,
                 runner: 'mocha',
                 patches: [
                     {
@@ -527,15 +429,13 @@ describe('mocha', () => {
                     },
                 ],
             };
-            const filePath = path.join(directoryPath, 'config.json');
+            const configFilePath = path.join(directoryPath, 'config.json');
 
-            await fs.writeFile(filePath, JSON.stringify(config));
+            await fs.writeFile(configFilePath, JSON.stringify(config));
 
-            return execa('./cli/index.js', [
-                '--configFile',
-                filePath,
-                'fixtures/mocha/patch/test.js',
-            ]);
+            return createIOSCli('fixtures/mocha/patch/test.js')
+                .config(configFilePath)
+                .run();
         });
 
         expect(process.exitCode).toBe(0);
@@ -549,24 +449,14 @@ describe('mocha', () => {
     });
 
     test('load environment variables', async () => {
-        const process = await execa(
-            './cli/index.js',
-            [
-                '--platform',
-                'ios',
-                '--simulator',
-                IOS_SIMULATOR,
-                '--runner',
-                'mocha',
-                'fixtures/mocha/env/test.js',
-            ],
-            {
-                env: {
-                    HELLO: 'hello',
-                    WORLD: 'world',
-                },
+        const process = await createIOSCli('fixtures/mocha/env/test.js', {
+            env: {
+                HELLO: 'hello',
+                WORLD: 'world',
             },
-        );
+        })
+            .runner('mocha')
+            .run();
 
         expect(process.exitCode).toBe(0);
         expect(process.stdout).toEqual(
