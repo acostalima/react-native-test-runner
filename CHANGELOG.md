@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://github.com/acostalima/react-native-test-runner/compare/v3.0.2...v4.0.0) (2021-03-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* renamed configFile option to config
+
+* fix ios workflow ([2e2045b](https://github.com/acostalima/react-native-test-runner/commit/2e2045b7d1c02ccca8bb1fd73067def0d86b3f2a))
+
 ### [3.0.2](https://github.com/acostalima/react-native-test-runner/compare/v3.0.1...v3.0.2) (2021-03-03)
 
 ### [3.0.1](https://github.com/acostalima/react-native-test-runner/compare/v3.0.0...v3.0.1) (2021-03-03)
