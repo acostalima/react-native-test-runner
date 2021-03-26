@@ -31,6 +31,7 @@ Options
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
     --app                  Path to the React Native test app root. [Default: ~/.rn-test-app]
+    --reset-cache          Resets Metro's cache. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime
@@ -90,6 +91,9 @@ Notes
         app: {
             type: 'string',
         },
+        resetCache: {
+            type: 'boolean',
+        },
     },
 });
 
@@ -99,6 +103,7 @@ const CLI_DEFAULT_OPTIONS = {
     rn: '0.63.4',
     runner: 'zora',
     app: path.join(os.homedir(), '.rn-test-app'),
+    resetCache: false,
 };
 const SUPPORTED_PLATFORMS = ['android', 'ios'];
 const SUPPORTED_RUNNERS = ['zora', 'mocha'];
@@ -106,7 +111,7 @@ const SUPPORTED_RUNNERS = ['zora', 'mocha'];
 const fileConfigExplorer = loadConfig('rn-test', { stopDir: process.cwd() });
 const fileConfigSearchResult = fileConfigExplorer.search();
 const fileConfig = cli.flags.config ? fileConfigExplorer.load(cli.flags.config) : fileConfigSearchResult || {};
-const options = mergeOptions(CLI_DEFAULT_OPTIONS, fileConfig.config, cli.flags);
+const options = mergeOptions({}, CLI_DEFAULT_OPTIONS, fileConfig.config, cli.flags);
 
 if (!SUPPORTED_RUNNERS.includes(options.runner)) {
     console.error(`Unknown runner: ${options.runner}. Supported runners are: ${SUPPORTED_RUNNERS.join(', ')}.`);
@@ -146,7 +151,6 @@ const runTests = async (options, testFileGlobs) => {
         const testRunner = createTestRunner(options, testFileGlobs);
 
         await createTestApp(options);
-
         await runMetroServer({
             cwd: options.cwd,
             port: options.metroPort,
@@ -155,6 +159,7 @@ const runTests = async (options, testFileGlobs) => {
             jsAppRoot,
             testRunner,
             testAppUserModules: options.modules,
+            resetCache: options.resetCache,
         });
 
         const shutdownNativePlatform = await runTestApp(options);
