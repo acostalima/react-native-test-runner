@@ -53,6 +53,7 @@ Options
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
     --require              Path to the module to load before the test suite. If not absolute, cwd is used to resolve the path.
     --app                  Path to the React Native test app root. [Default: ~/.rn-test-app]
+    --reset-cache          Resets Metro's cache. [Default: false]
 
 Examples
     # Run tests on iPhone 11 simulator with iOS version 14.1 runtime

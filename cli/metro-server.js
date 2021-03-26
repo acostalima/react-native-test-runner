@@ -80,6 +80,7 @@ const getMetroConfig = ({
     port,
     testRunner,
     testAppUserModules = [],
+    resetCache,
 }) => {
     const {
         testAppModulesPath,
@@ -164,6 +165,7 @@ const getMetroConfig = ({
             ...testDirectoryPaths,
         ],
         reporter: testRunner.reporter,
+        resetCache,
     };
 };
 
