@@ -90,8 +90,6 @@ jobs:
           avd-name: google-pixel
           script: |
             npm t -- android
-        env:
-          ANDROID_EMULATOR: google-pixel
 
   ios:
     needs: prepare
@@ -131,10 +129,11 @@ jobs:
       #     xcversion select 12.1
 
       - name: Create and run iOS simulator
+        id: setup-ios-simulador
         run: |
           SIMULATOR_RUNTIME=$(echo "iOS 14.4" | sed 's/[ \.]/-/g')
           SIMULATOR_ID=$(xcrun simctl create "iPhone 11" com.apple.CoreSimulator.SimDeviceType.iPhone-11 com.apple.CoreSimulator.SimRuntime.$SIMULATOR_RUNTIME)
-          echo "IOS_SIMULATOR=$SIMULATOR_ID" >> $GITHUB_ENV
+          echo "::set-output name=simulador_id::$SIMULATOR_ID"
           xcrun simctl boot $SIMULATOR_ID &
 
       - name: Cache iOS build
@@ -168,4 +167,4 @@ jobs:
 
       - name: Shutdown iOS simulator
         run: |
-          xcrun simctl shutdown $IOS_SIMULATOR
+          xcrun simctl shutdown ${{ steps.setup-ios-simulador.outputs.simulador_id }}
