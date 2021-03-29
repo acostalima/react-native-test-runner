@@ -30,6 +30,7 @@ $ npm install -D react-native-test-runner
 ## Limitations
 
 - No coverage output.
+- Stack traces are not source mapped.
 - No support for [React Native Windows](https://github.com/microsoft/react-native-windows) and [React Native macOS](https://github.com/microsoft/react-native-macos).
 - JavaScriptCore (JSC) engine only on both Android and iOS.
 - No TypeScript (TS) support.
@@ -46,7 +47,7 @@ Options
     --plaform, -p          Platform on which to run the test suite on. One of: 'ios', 'android'.
     --simulator, -s        iOS simulator to run the test suite on.
     --emulator, -e         Android emulator or virtual device (AVD) to run the test suite on.
-    --metro-port, -p        Port on which Metro's server should listen to. [Default: 8081]
+    --metro-port, -p       Port on which Metro's server should listen to. [Default: 8081]
     --cwd                  Current directory. [Default: process.cwd()]
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
@@ -74,10 +75,18 @@ Notes
     Check out the README for information about advanced options.
 ```
 
+### Device orchestration
+
+Both `simulator` and `emulator` options are optional.
+
+When they're not passed, the CLI attempts to find the currently booted device. If none or more than one is found, the CLI exits with an error. If only one is found, the CLI installs and launches the test app in that device. The device is not shutdown before the CLI exits. This feature might be useful when running in CI servers which are often responsible for setting up the appropriate test environment.
+
+When they're passed, unless the device cannot be found in the system, the CLI boots the device and shuts it down automatically before exiting. In case of iOS, if the passed simulator is already booted, the CLI behaves exactly as if it was not, i.e., the device is not shutdown before the CLI exists.
+
 ### Advanced options
 
 The following options are only available via configuration file loaded by [lilconfig](https://github.com/antonk52/lilconfig).
-All CLI options are supported in the configuration file approach as well, but the options defined in the file override those provided to the CLI.  
+All CLI options are supported in the configuration file approach as well, but the options passed to the CLI override those defined in the file.  
 
 Example `rn-test.config.js`:
 
@@ -149,8 +158,8 @@ The test suite can be parameterized with the following environment variables:
 |----------|------------|---------|
 | `REACT_NATIVE_VERSION` | `rn` | CLI default |
 | `REACT_NATIVE_TEST_APP` | `app` | CLI default |
-| `IOS_SIMULATOR` | `simulator` | `'iPhone (14.1)'` |
-| `ANDROID_SIMULATOR`| `emulator` | `'Pixel_API_28_AOSP'` |
+| `IOS_SIMULATOR` | `simulator` | - |
+| `ANDROID_SIMULATOR`| `emulator` | - |
 
 Both `IOS_SIMULATOR` and `ANDROID_EMULATOR` must be set according to what iOS simulators and Android emulators you have installed in your system.
 

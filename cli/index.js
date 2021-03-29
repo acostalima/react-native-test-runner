@@ -7,15 +7,13 @@ const os = require('os');
 const meow = require('meow');
 const semver = require('semver');
 const { lilconfigSync: loadConfig } = require('lilconfig');
+const mergeOptions = require('merge-options');
 const runIOS = require('./run-ios');
 const runAndroid = require('./run-android');
 const runMetroServer = require('./metro-server');
 const createTestApp = require('./create-test-app');
 const createTestRunner = require('./test-runners');
 const { findMonoRepoRoot } = require('./utils');
-
-const fileConfigExplorer = loadConfig('rn-test', { stopDir: process.cwd() });
-const fileConfigSearchResult = fileConfigExplorer.search();
 
 const cli = meow(`
 Usage
@@ -27,7 +25,7 @@ Options
     --plaform, -p          Platform on which to run the test suite on. One of: 'ios', 'android'.
     --simulator, -s        iOS simulator to run the test suite on.
     --emulator, -e         Android emulator or virtual device (AVD) to run the test suite on.
-    --metro-port, -p        Port on which Metro's server should listen to. [Default: 8081]
+    --metro-port, -p       Port on which Metro's server should listen to. [Default: 8081]
     --cwd                  Current directory. [Default: process.cwd()]
     --rn                   React Native version to use. [Default: 0.63.4]
     --runner               Test runner to use. One of: 'zora', 'mocha'. [Default: 'zora']
@@ -59,34 +57,27 @@ Notes
         platform: {
             type: 'string',
             alias: 'p',
-            isRequired: (flags) => !(flags.config || fileConfigSearchResult),
         },
         simulator: {
             type: 'string',
             alias: 's',
-            isRequired: (flags) => !(flags.config || fileConfigSearchResult) && flags.platform === 'ios',
         },
         emulator: {
             type: 'string',
             alias: 'e',
-            isRequired: (flags) => !(flags.config || fileConfigSearchResult) && flags.platform === 'android',
         },
         metroPort: {
             type: 'number',
             alias: 'p',
-            default: 8081,
         },
         cwd: {
             type: 'string',
-            default: process.cwd(),
         },
         rn: {
             type: 'string',
-            default: '0.63.4',
         },
         runner: {
             type: 'string',
-            default: 'zora',
         },
         require: {
             type: 'string',
@@ -98,16 +89,24 @@ Notes
         },
         app: {
             type: 'string',
-            default: path.join(os.homedir(), '.rn-test-app'),
         },
     },
 });
 
+const CLI_DEFAULT_OPTIONS = {
+    metroPort: 8081,
+    cwd: process.cwd(),
+    rn: '0.63.4',
+    runner: 'zora',
+    app: path.join(os.homedir(), '.rn-test-app'),
+};
 const SUPPORTED_PLATFORMS = ['android', 'ios'];
 const SUPPORTED_RUNNERS = ['zora', 'mocha'];
 
+const fileConfigExplorer = loadConfig('rn-test', { stopDir: process.cwd() });
+const fileConfigSearchResult = fileConfigExplorer.search();
 const fileConfig = cli.flags.config ? fileConfigExplorer.load(cli.flags.config) : fileConfigSearchResult || {};
-const options = { ...cli.flags, ...fileConfig.config };
+const options = mergeOptions(CLI_DEFAULT_OPTIONS, fileConfig.config, cli.flags);
 
 if (!SUPPORTED_RUNNERS.includes(options.runner)) {
     console.error(`Unknown runner: ${options.runner}. Supported runners are: ${SUPPORTED_RUNNERS.join(', ')}.`);

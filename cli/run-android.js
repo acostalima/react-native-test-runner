@@ -7,8 +7,8 @@ const path = require('path');
 const os = require('os');
 const execa = require('execa');
 const pRetry = require('p-retry');
+const pTap = require('p-tap');
 const ora = require('ora');
-const processExists = require('process-exists');
 
 const ADB_PATH = process.env.ANDROID_HOME ?
     `${process.env.ANDROID_HOME}/platform-tools/adb` :
@@ -17,14 +17,14 @@ const EMULATOR_PATH = process.env.ANDROID_HOME ?
     `${process.env.ANDROID_HOME}/emulator/emulator` :
     'emulator';
 
-const getEmulators = () => {
+const getEmulatorsList = () => {
     const { stdout: emulators } = execa.sync(EMULATOR_PATH, ['-list-avds']);
 
     return emulators.split(os.EOL).filter(Boolean);
 };
 
-const terminateApp = async ({ packageName }) => {
-    const adbArgs = ['shell', 'pm', 'clear', '-n', `${packageName}`];
+const terminateApp = async ({ emulatorId, packageName }) => {
+    const adbArgs = ['-s', emulatorId, 'shell', 'pm', 'clear', '-n', `${packageName}`];
     const process = execa(ADB_PATH, adbArgs);
     const loader = ora();
 
@@ -39,8 +39,10 @@ const terminateApp = async ({ packageName }) => {
     }
 };
 
-const launchApp = async ({ packageName, mainActivity }) => {
+const launchApp = async ({ emulatorId, packageName, mainActivity }) => {
     const adbArgs = [
+        '-s',
+        emulatorId,
         'shell',
         'am',
         'start',
@@ -77,8 +79,10 @@ const installApp = async ({ emulatorId, apkFilePath }) => {
     }
 };
 
-const uninstallApp = async ({ packageName }) => {
+const uninstallApp = async ({ emulatorId, packageName }) => {
     const process = execa('adb', [
+        '-s',
+        emulatorId,
         'uninstall',
         packageName,
     ]);
@@ -118,7 +122,7 @@ const buildApk = async ({ testAppRoot, metroPort }) => {
     }
 };
 
-const getDevices = () => {
+const getConnectedDevices = () => {
     const { stdout: output } = execa.sync(ADB_PATH, ['devices']);
     const lines = output.split(os.EOL);
 
@@ -136,29 +140,96 @@ const getDevices = () => {
     }, []);
 };
 
-const findBootedEmulator = () => {
-    const devices = getDevices();
+const didEmulatorBootCompleted = (emulatorId) => {
+    const { stdout: output } = execa.sync(ADB_PATH, ['-s', emulatorId, 'shell', 'getprop', 'sys.boot_completed']);
+    const lines = output.split(os.EOL);
 
-    for (const { id, booted } of devices) {
-        if (id.startsWith('emulator') && booted) {
-            return id;
+    return lines.reduce((bootCompleted, line) => {
+        line = line.trim();
+
+        if (line.length > 1) {
+            return bootCompleted;
         }
+
+        return line === '1';
+    }, false);
+};
+
+const getBootedEmulators = () => {
+    const devices = getConnectedDevices();
+
+    return devices.filter(({ id, booted }) => id.startsWith('emulator') && booted).map(({ id }) => id).sort();
+};
+
+const createEmulatorShutdown = (emulator, emulatorId) => async () => {
+    const loader = ora();
+
+    loader.start(
+        `Shutting down headless AVD ${emulator} (${emulatorId})`,
+    );
+
+    try {
+        execa.sync(ADB_PATH, ['-s', emulatorId, 'emu', 'kill']);
+
+        await pRetry(
+            async () => {
+                const bootedEmulatorIds = getBootedEmulators();
+                const didEmulatorShutdown = !bootedEmulatorIds.includes(emulatorId);
+
+                if (!didEmulatorShutdown) {
+                    return Promise.reject(
+                        new Error(
+                            `Android AVD ${emulator} (${emulatorId}) did not shutdown`,
+                        ),
+                    );
+                }
+            },
+            {
+                retries: 5,
+                factor: 2,
+                minTimeout: 10000,
+            },
+        );
+
+        loader.succeed();
+    } catch (error) {
+        loader.fail();
+        throw error;
+    }
+};
+
+const isAvdAlreadyRunning = ({ stdout: output, exitCode }) => {
+    if (exitCode === 0) {
+        return false;
     }
 
-    return null;
+    const errorMsg = output.split(os.EOL).shift();
+
+    return !!errorMsg.match(/emulator: ERROR: Running multiple emulators with the same AVD is an experimental feature./);
 };
 
 const bootHeadlessEmulator = async ({ emulator }) => {
-    const emulatorId = findBootedEmulator();
+    const bootedEmulatorIds = getBootedEmulators();
 
-    if (emulatorId) {
-        return { emulatorId, shutdown: () => Promise.resolve() };
+    if (!emulator) {
+        if (bootedEmulatorIds.length > 1) {
+            throw new Error(`Found more than one Android emulator booted up: ${bootedEmulatorIds.join(',')}`);
+        }
+
+        if (bootedEmulatorIds.length === 0) {
+            throw new Error('Found no Android emulators booted up');
+        }
+
+        return {
+            emulatorId: bootedEmulatorIds.shift(),
+            shutdown: () => Promise.resolve(),
+        };
     }
 
-    const emulators = getEmulators();
+    const emulators = getEmulatorsList();
 
     if (!emulators.includes(emulator)) {
-        throw new Error(`Android emulator ${emulator} not found`);
+        throw new Error(`Android AVD ${emulator} not found`);
     }
 
     const loader = ora();
@@ -178,29 +249,36 @@ const bootHeadlessEmulator = async ({ emulator }) => {
         ],
         {
             detached: true,
-            stdio: 'ignore',
         },
     );
 
-    subprocess.unref();
+    const retriableBootCompleteCheck = pRetry(
+        async () => {
+            const currentlyBootedEmulatorIds = getBootedEmulators();
+            const emulatorStarted = currentlyBootedEmulatorIds.length > bootedEmulatorIds.length;
 
-    const retriableBootCheck = pRetry(
-        () => {
-            const emulatorId = findBootedEmulator();
-
-            if (!emulatorId) {
+            if (!emulatorStarted) {
                 return Promise.reject(
-                    new Error(`Android emulator ${emulator} did not boot`),
+                    new Error(`Android AVD ${emulator} did not start`),
+                );
+            }
+
+            const emulatorId = currentlyBootedEmulatorIds.pop();
+            const emulatorBootCompleted = didEmulatorBootCompleted(emulatorId);
+
+            if (!emulatorBootCompleted) {
+                return Promise.reject(
+                    new Error(`Android AVD ${emulator} boot is yet to complete`),
                 );
             }
 
             loader.succeed(
-                `Booting headless ${emulator} emulator (${emulatorId})`,
+                `Booting Android headless AVD ${emulator} (${emulatorId})`,
             );
 
             return ({
                 emulatorId,
-                shutdown: createKillSubprocess(emulatorId),
+                shutdown: createEmulatorShutdown(emulator, emulatorId),
             });
         },
         {
@@ -209,54 +287,23 @@ const bootHeadlessEmulator = async ({ emulator }) => {
                     loader.fail();
                 }
             },
-            retries: 3,
+            retries: 5,
             factor: 2,
-            minTimeout: 3000,
-            maxTimeout: 15000,
+            minTimeout: 10000,
         },
     );
 
-    const createKillSubprocess = (emulatorId) => async () => {
-        loader.start(
-            `Shutting down headless ${emulator} emulator (${emulatorId})`,
-        );
-
-        subprocess.kill('SIGTERM', { forceKillAfterTimeout: 5000 });
-
-        try {
-            await pRetry(
-                async () => {
-                    if (await processExists(subprocess.pid)) {
-                        return Promise.reject(
-                            new Error(
-                                `Android emulator ${emulator} (${emulatorId}) did not shutdown`,
-                            ),
-                        );
-                    }
-                },
-                {
-                    retries: 3,
-                    factor: 2,
-                    minTimeout: 3000,
-                    maxTimeout: 15000,
-                },
-            );
-            loader.succeed();
-        } catch (error) {
-            loader.fail();
-            throw error;
-        }
-    };
-
     return Promise.race([
-        new Promise((resolve, reject) => {
-            process.on('error', (error) => {
-                loader.fail();
+        subprocess.catch((error) => {
+            loader.fail();
 
-                reject(error);
-            });
+            if (isAvdAlreadyRunning(error)) {
+                throw new Error(`Android emulator with AVD ${emulator} is already running`);
+            }
+
+            throw error;
         }),
-        retriableBootCheck,
+        retriableBootCompleteCheck.catch(pTap.catch(() => loader.fail())),
     ]);
 };
 
@@ -318,11 +365,11 @@ module.exports = async ({ emulator, testAppRoot, metroPort }) => {
 
     await buildApk({ testAppRoot, metroPort });
     await installApp({ emulatorId, apkFilePath });
-    await launchApp({ mainActivity, packageName });
+    await launchApp({ emulatorId, mainActivity, packageName });
 
     return async () => {
-        await terminateApp({ packageName });
-        await uninstallApp({ packageName });
+        await terminateApp({ emulatorId, packageName });
+        await uninstallApp({ emulatorId, packageName });
         await shutdownEmulator();
     };
 };

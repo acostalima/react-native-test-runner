@@ -5,8 +5,8 @@ const execa = require('execa');
 const {
     REACT_NATIVE_VERSION,
     REACT_NATIVE_TEST_APP,
-    ANDROID_EMULATOR = 'Pixel_API_28_AOSP',
-    IOS_SIMULATOR = 'iPhone 11 (14.1)',
+    ANDROID_EMULATOR,
+    IOS_SIMULATOR,
 } = process.env;
 
 const createCli = (testFileGlobs = [], options) => {
@@ -75,8 +75,12 @@ const createIOSCli = (testFileGlobs, options) => {
 
     return {
         ...cli,
-        run(moreArgs = []) {
-            return cli.run(['--simulator', IOS_SIMULATOR, ...moreArgs]);
+        run(args = []) {
+            if (IOS_SIMULATOR) {
+                args = ['--simulator', IOS_SIMULATOR, ...args];
+            }
+
+            return cli.run(args);
         },
     };
 };
@@ -86,8 +90,12 @@ const createAndroidCli = (testFileGlobs, options) => {
 
     return {
         ...cli,
-        run(moreArgs = []) {
-            return cli.run(['--emulator', ANDROID_EMULATOR, ...moreArgs]);
+        run(args = []) {
+            if (ANDROID_EMULATOR) {
+                args = ['--emulator', ANDROID_EMULATOR, ...args];
+            }
+
+            return cli.run(args);
         },
     };
 };

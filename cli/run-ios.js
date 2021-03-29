@@ -8,7 +8,7 @@ const execa = require('execa');
 const ora = require('ora');
 const isUUID = require('is-uuid');
 
-const getSimulators = () => {
+const getSimulatorsList = () => {
     const { stderr: output } = execa.sync('xcrun', [
         'xctrace',
         'list',
@@ -40,12 +40,12 @@ const getSimulators = () => {
 };
 
 const findSimulatorById = (simulatorId) => {
-    const simulators = getSimulators();
+    const simulators = getSimulatorsList();
 
     return simulators.find(({ udid }) => udid === simulatorId);
 };
 
-const findSimulatorByName = (querySimulatorName) => {
+const getMatchingSimulators = (simulatorQuery) => {
     const { stdout: output } = execa.sync('xcrun', [
         'simctl',
         'list',
@@ -54,17 +54,19 @@ const findSimulatorByName = (querySimulatorName) => {
     ]);
 
     const knownSimulators = JSON.parse(output).devices;
+    let inputSimulatorVersion;
+    let inputSimulatorName;
 
-    const queryResult = querySimulatorName.match(/([\w- ]+)(?:(?<= )\((\d+\.\d+)\))?/);
+    if (simulatorQuery) {
+        const simulatorMatchResult = simulatorQuery.match(/([\w- ]+)(?:(?<= )\((\d+\.\d+)\))?/);
 
-    if (!queryResult) {
-        return null;
+        if (simulatorMatchResult) {
+            inputSimulatorName = simulatorMatchResult[1].trim();
+            inputSimulatorVersion = simulatorMatchResult[2];
+        }
     }
 
-    const [, simulatorName, simulatorVersion] = queryResult;
-    const trimmedSimulatorName = simulatorName.trim();
-
-    const eligibleSimulatorVersions = Object.entries(knownSimulators).reduce(
+    const eligibleSimulators = Object.entries(knownSimulators).reduce(
         (eligibleSimulators, [versionDescriptor, simulatorsForVersion]) => {
             const version = versionDescriptor.replace(
                 /^com\.apple\.CoreSimulator\.SimRuntime\.([^-]+)-([^-]+)-([^-]+)$/g,
@@ -75,7 +77,7 @@ const findSimulatorByName = (querySimulatorName) => {
                 return eligibleSimulators;
             }
 
-            if (simulatorVersion && !version.endsWith(simulatorVersion)) {
+            if (inputSimulatorVersion && !version.endsWith(inputSimulatorVersion)) {
                 return eligibleSimulators;
             }
 
@@ -87,26 +89,22 @@ const findSimulatorByName = (querySimulatorName) => {
         [],
     );
 
-    const foundSimulator = eligibleSimulatorVersions.find((simulator) => {
-        if (!simulator.isAvailable) {
-            return false;
-        }
+    return eligibleSimulators
+        .filter((simulator) => {
+            if (!simulator.isAvailable) {
+                return false;
+            }
 
-        if (simulator.name !== trimmedSimulatorName) {
-            return false;
-        }
+            if (inputSimulatorName && simulator.name !== inputSimulatorName) {
+                return false;
+            }
 
-        return true;
-    });
-
-    if (!foundSimulator) {
-        return null;
-    }
-
-    return {
-        ...foundSimulator,
-        booted: foundSimulator.state === 'Booted',
-    };
+            return true;
+        })
+        .map((simulator) => ({
+            ...simulator,
+            booted: simulator.state === 'Booted',
+        }));
 };
 
 const getProjectSettings = ({ testAppRoot }) => {
@@ -183,22 +181,6 @@ const buildApp = async ({ testAppRoot, simulator, metroPort }) => {
     }
 };
 
-const bootHeadlessSimulator = async (simulator) => {
-    const process = execa('xcrun', ['simctl', 'boot', `${simulator.udid}`]);
-    const loader = ora();
-
-    try {
-        loader.start(
-            `Booting headless ${simulator.name} (${simulator.version}) simulator (${simulator.udid})`,
-        );
-        await process;
-        loader.succeed();
-    } catch (error) {
-        loader.fail();
-        throw error;
-    }
-};
-
 const shutdownSimulator = async (simulator) => {
     const process = execa('xcrun', ['simctl', 'shutdown', `${simulator.udid}`]);
     const loader = ora();
@@ -209,6 +191,80 @@ const shutdownSimulator = async (simulator) => {
         );
         await process;
         loader.succeed();
+    } catch (error) {
+        loader.fail();
+        throw error;
+    }
+};
+
+const bootHeadlessSimulator = async (simulatorQuery) => {
+    if (isUUID.v4(simulatorQuery)) {
+        const simulatorUUID = simulatorQuery;
+        const simulator = findSimulatorById(simulatorUUID);
+
+        if (!simulator) {
+            throw new Error(`iOS simulator ${simulatorUUID} not found`);
+        }
+
+        simulatorQuery = `${simulator.name} (${simulator.version})`;
+    }
+
+    const simulators = getMatchingSimulators(simulatorQuery);
+
+    if (simulatorQuery && simulators.length === 0) {
+        throw new Error(`iOS simulator ${simulatorQuery} not found`);
+    }
+
+    if (simulatorQuery && simulators.length > 1) {
+        const simulatorIds = simulators.map(({ udid }) => udid);
+
+        throw new Error(`Found multiple iOS simulators matching query: ${simulatorIds.join(',')}`);
+    }
+
+    let simulator;
+
+    if (simulatorQuery) {
+        simulator = simulators[0];
+    } else {
+        const bootedSimulators = simulators.filter(({ booted }) => booted);
+        const bootedSimulatorIds = bootedSimulators.map(({ udid }) => udid);
+
+        if (bootedSimulators.length === 0) {
+            throw new Error('Found no iOS simulators booted up');
+        }
+
+        if (bootedSimulators.length > 1) {
+            throw new Error(`Found multiple iOS simulators booted up: ${bootedSimulatorIds.join(',')}`);
+        }
+
+        simulator = bootedSimulators[0];
+    }
+
+    const simulatorAlreadyBooted = simulator.booted;
+
+    if (simulatorAlreadyBooted) {
+        return {
+            simulator,
+            shutdown: () => Promise.resolve(),
+        };
+    }
+
+    const loader = ora();
+
+    loader.start(
+        `Booting headless ${simulator.name} (${simulator.version}) simulator (${simulator.udid})`,
+    );
+
+    const process = execa('xcrun', ['simctl', 'boot', `${simulator.udid}`]);
+
+    try {
+        await process;
+        loader.succeed();
+
+        return {
+            simulator,
+            shutdown: () => shutdownSimulator(simulator),
+        };
     } catch (error) {
         loader.fail();
         throw error;
@@ -313,31 +369,11 @@ const runPodInstall = async ({ testAppRoot }) => {
 };
 
 module.exports = async ({
-    simulator: inputSimulator,
+    simulator: simulatorQuery,
     testAppRoot,
     metroPort,
 }) => {
-    if (isUUID.v4(inputSimulator)) {
-        const simulator = findSimulatorById(inputSimulator);
-
-        if (!simulator) {
-            throw new Error(`iOS simulator ${simulator} not found`);
-        }
-
-        inputSimulator = `${simulator.name} (${simulator.version})`;
-    }
-
-    const simulator = findSimulatorByName(inputSimulator);
-
-    if (!simulator) {
-        throw new Error(`iOS simulator ${inputSimulator} not found`);
-    }
-
-    const simulatorAlreadyBooted = simulator.booted;
-
-    if (!simulatorAlreadyBooted) {
-        await bootHeadlessSimulator(simulator);
-    }
+    const { shutdown: shutdownSimulator, simulator } = await bootHeadlessSimulator(simulatorQuery);
 
     await runPodInstall({ testAppRoot });
     await buildApp({ testAppRoot, simulator, metroPort });
@@ -350,6 +386,6 @@ module.exports = async ({
     return async () => {
         await terminateApp({ simulator, bundleId });
         await uninstallApp({ simulator, bundleId });
-        !simulatorAlreadyBooted && await shutdownSimulator(simulator);
+        await shutdownSimulator();
     };
 };
