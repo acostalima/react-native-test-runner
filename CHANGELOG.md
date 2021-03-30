@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.0.0](https://github.com/acostalima/react-native-test-runner/compare/v4.0.0...v5.0.0) (2021-03-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* improve device management
+
+### Features
+
+* add option to reset metro's cache ([cdf241d](https://github.com/acostalima/react-native-test-runner/commit/cdf241da52a73d71782cbafb7d10b0895ddae463))
+
+
+### Bug Fixes
+
+* improve device management ([7585d03](https://github.com/acostalima/react-native-test-runner/commit/7585d03ed7cc9c2a8bc4be0ad185199e42f398d8))
+
 ## [4.0.0](https://github.com/acostalima/react-native-test-runner/compare/v3.0.2...v4.0.0) (2021-03-25)
 
 
