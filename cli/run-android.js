@@ -8,6 +8,7 @@ const os = require('os');
 const execa = require('execa');
 const pRetry = require('p-retry');
 const pTap = require('p-tap');
+const { AbortController } = require('native-abort-controller');
 const ora = require('ora');
 
 const ADB_PATH = process.env.ANDROID_HOME ?
@@ -186,8 +187,9 @@ const createEmulatorShutdown = (emulator, emulatorId) => async () => {
             },
             {
                 retries: 5,
-                factor: 2,
-                minTimeout: 10000,
+                factor: 1,
+                minTimeout: 5000,
+                maxTimeout: 5000,
             },
         );
 
@@ -252,24 +254,27 @@ const bootHeadlessEmulator = async ({ emulator }) => {
         },
     );
 
+    const abortController = new AbortController();
+    const abortSignal = abortController.signal;
+
     const retriableBootCompleteCheck = pRetry(
         async () => {
+            if (abortSignal.aborted) {
+                throw new pRetry.AbortError('Android emulator boot complete check aborted');
+            }
+
             const currentlyBootedEmulatorIds = getBootedEmulators();
             const emulatorStarted = currentlyBootedEmulatorIds.length > bootedEmulatorIds.length;
 
             if (!emulatorStarted) {
-                return Promise.reject(
-                    new Error(`Android AVD ${emulator} did not start`),
-                );
+                throw new Error(`Android AVD ${emulator} did not start`);
             }
 
             const emulatorId = currentlyBootedEmulatorIds.pop();
             const emulatorBootCompleted = didEmulatorBootCompleted(emulatorId);
 
             if (!emulatorBootCompleted) {
-                return Promise.reject(
-                    new Error(`Android AVD ${emulator} boot is yet to complete`),
-                );
+                throw new Error(`Android AVD ${emulator} boot is yet to complete`);
             }
 
             loader.succeed(
@@ -288,21 +293,21 @@ const bootHeadlessEmulator = async ({ emulator }) => {
                 }
             },
             retries: 5,
-            factor: 2,
-            minTimeout: 10000,
+            factor: 1,
+            minTimeout: 5000,
+            maxTimeout: 5000,
         },
     );
 
     return Promise.race([
-        subprocess.catch((error) => {
+        subprocess.catch(pTap.catch((error) => {
+            abortController.abort();
             loader.fail();
 
             if (isAvdAlreadyRunning(error)) {
                 throw new Error(`Android emulator with AVD ${emulator} is already running`);
             }
-
-            throw error;
-        }),
+        })),
         retriableBootCompleteCheck.catch(pTap.catch(() => loader.fail())),
     ]);
 };

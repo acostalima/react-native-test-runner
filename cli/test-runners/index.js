@@ -1,9 +1,9 @@
 'use strict';
 
+const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
 const tempy = require('tempy');
-const createSignal = require('pico-signals');
 const { expandGlobs, getCommonParentDirectories } = require('../utils');
 const OraBundleProgress = require('../bundle-progress/ora');
 
@@ -17,7 +17,7 @@ const createTestReporter = (testRunner) => {
     ];
 
     const progress = new OraBundleProgress(testRunner);
-    const doneSignal = createSignal();
+    const eventEmitter = new EventEmitter();
     let running = false;
     let pass = null;
 
@@ -60,13 +60,11 @@ const createTestReporter = (testRunner) => {
             return Promise.resolve();
         }
 
-        let removeSignal;
-
         await new Promise((resolve) => {
-            removeSignal = doneSignal.add(resolve);
+            eventEmitter.addListener('done', resolve);
         });
 
-        removeSignal();
+        eventEmitter.removeAllListeners();
     };
 
     const handleClientLogEvent = ({ data }) => {
@@ -80,7 +78,7 @@ const createTestReporter = (testRunner) => {
                 console.error(data[1]);
             }
 
-            doneSignal.dispatch();
+            eventEmitter.emit('done');
 
             return;
         }
